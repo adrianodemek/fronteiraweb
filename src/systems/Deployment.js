@@ -1,4 +1,4 @@
-import { distance } from '../utils/math.js?v=0.1.8';
+import { distance } from '../utils/math.js?v=0.1.9';
 
 export class DeploymentSystem {
   constructor(config) {
@@ -77,12 +77,10 @@ export class DeploymentSystem {
   }
 
   getPocketRect(team, lane) {
-    const { river, deployment } = this.config;
+    const { river, deployment, arenaGrid } = this.config;
     const laneBounds = this.getLaneBounds(lane);
-    const depth = deployment.pocketDepth;
+    const depth = deployment.pocketDepthTiles * arenaGrid.tileSize;
 
-    // Clash Royale: depois que a torre lateral cai, abre apenas um pocket
-    // curto logo alem do rio naquela lane. Nao libera metade inteira do mapa.
     if (team === 'player') {
       return {
         lane,
