@@ -1,8 +1,8 @@
-import { GAME_CONFIG } from '../config.js?v=0.1.9';
+import { GAME_CONFIG } from '../config.js?v=0.2.0';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.1.9';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.9';
+import { Unit } from '../entities/Unit.js?v=0.2.0';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.2.0';
 import { clamp } from '../utils/math.js';
 
 export class Game {
