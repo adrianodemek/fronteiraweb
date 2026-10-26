@@ -1,4 +1,4 @@
-import { Game } from './core/Game.js?v=0.4.0';
+import { BattleGame } from './core/BattleGame.js?v=0.5.0';
 
 const canvas = document.querySelector('#game');
 
@@ -6,5 +6,5 @@ if (!canvas) {
   throw new Error('Canvas principal não encontrado.');
 }
 
-const game = new Game(canvas);
+const game = new BattleGame(canvas);
 game.start();
