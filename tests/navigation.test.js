@@ -42,7 +42,8 @@ function simulate(unit, units, structures, seconds) {
 
   simulate(player, [player], [target], 8);
 
-  assert.ok(player.y < GAME_CONFIG.river.top, `Jogador não atravessou: y=${player.y}`);
+  assert.ok(player.crossedRiver, `Jogador não marcou travessia concluída: y=${player.y}`);
+  assert.ok(player.y <= GAME_CONFIG.river.top - 12, `Jogador não entrou no campo inimigo: y=${player.y}`);
   assert.ok(Math.abs(player.x - GAME_CONFIG.bridges[0]) < 3, `Jogador saiu da ponte: x=${player.x}`);
 }
 
@@ -59,39 +60,41 @@ function simulate(unit, units, structures, seconds) {
 
   simulate(enemy, [enemy], [target], 8);
 
-  assert.ok(enemy.y > GAME_CONFIG.river.bottom, `Inimigo não atravessou: y=${enemy.y}`);
+  assert.ok(enemy.crossedRiver, `Inimigo não marcou travessia concluída: y=${enemy.y}`);
+  assert.ok(enemy.y >= GAME_CONFIG.river.bottom + 12, `Inimigo não entrou no campo do jogador: y=${enemy.y}`);
   assert.ok(Math.abs(enemy.x - GAME_CONFIG.bridges[1]) < 3, `Inimigo saiu da ponte: x=${enemy.x}`);
 }
 
 {
+  // Reproduz o bug visto no celular: a tropa detecta um inimigo perto da
+  // saída da ponte. Mesmo que ele esteja dentro do alcance de ataque, a
+  // travessia precisa terminar antes do combate.
   const player = new Unit({
     team: 'player',
     lane: 0,
-    x: 130,
-    y: 390,
+    x: 88,
+    y: 352,
     stats,
     config: GAME_CONFIG,
   });
-  const enemy = new Unit({
+  const enemyNearExit = new Unit({
     team: 'enemy',
     lane: 0,
     x: 88,
-    y: 278,
+    y: 286,
     stats,
     config: GAME_CONFIG,
   });
   const target = makeStructure('enemy', 0, 88, 154);
 
-  enemy.takeDamage = () => {};
+  enemyNearExit.takeDamage = () => {};
 
-  for (let elapsed = 0; elapsed < 5; elapsed += 0.04) {
-    player.update(0.04, [player, enemy], [target]);
-    enemy.y += 0.18;
-  }
+  simulate(player, [player, enemyNearExit], [target], 4);
 
+  assert.ok(player.crossedRiver, `Combate interrompeu a travessia: y=${player.y}`);
   assert.ok(
-    player.x > 66 && player.x < 110,
-    `Troca de alvo tirou a unidade da ponte: x=${player.x}`,
+    player.y <= GAME_CONFIG.river.top - 12,
+    `Jogador ficou preso na saída da ponte: y=${player.y}`,
   );
 }
 
