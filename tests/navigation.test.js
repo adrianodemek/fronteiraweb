@@ -22,80 +22,69 @@ function makeStructure(team, lane, x, y) {
   };
 }
 
-function simulate(unit, units, structures, seconds) {
+function simulate(unit, units, structures, seconds, onStep) {
   const dt = 0.04;
   for (let elapsed = 0; elapsed < seconds; elapsed += dt) {
     unit.update(dt, units, structures);
+    onStep?.(unit, elapsed);
   }
 }
 
 {
   const player = new Unit({
-    team: 'player',
-    lane: 0,
-    x: 150,
-    y: 450,
-    stats,
-    config: GAME_CONFIG,
+    team: 'player', lane: 0, x: 150, y: 450, stats, config: GAME_CONFIG,
   });
   const target = makeStructure('enemy', 0, 88, 154);
+  let enteredWater = false;
 
-  simulate(player, [player], [target], 8);
+  simulate(player, [player], [target], 9, (unit) => {
+    const insideRiver = unit.y >= GAME_CONFIG.river.top && unit.y <= GAME_CONFIG.river.bottom;
+    if (insideRiver && !unit.isInsideBridge(unit.x)) enteredWater = true;
+  });
 
-  assert.ok(player.crossedRiver, `Jogador não marcou travessia concluída: y=${player.y}`);
-  assert.ok(player.y <= GAME_CONFIG.river.top - 12, `Jogador não entrou no campo inimigo: y=${player.y}`);
-  assert.ok(Math.abs(player.x - GAME_CONFIG.bridges[0]) < 3, `Jogador saiu da ponte: x=${player.x}`);
+  assert.equal(enteredWater, false, 'Jogador entrou na água fora da ponte.');
+  assert.ok(player.y < GAME_CONFIG.river.top, `Jogador não chegou ao campo inimigo: y=${player.y}`);
 }
 
 {
   const enemy = new Unit({
-    team: 'enemy',
-    lane: 1,
-    x: 272,
-    y: 218,
-    stats,
-    config: GAME_CONFIG,
+    team: 'enemy', lane: 1, x: 240, y: 218, stats, config: GAME_CONFIG,
   });
   const target = makeStructure('player', 1, 272, 486);
+  let enteredWater = false;
 
-  simulate(enemy, [enemy], [target], 8);
+  simulate(enemy, [enemy], [target], 9, (unit) => {
+    const insideRiver = unit.y >= GAME_CONFIG.river.top && unit.y <= GAME_CONFIG.river.bottom;
+    if (insideRiver && !unit.isInsideBridge(unit.x)) enteredWater = true;
+  });
 
-  assert.ok(enemy.crossedRiver, `Inimigo não marcou travessia concluída: y=${enemy.y}`);
-  assert.ok(enemy.y >= GAME_CONFIG.river.bottom + 12, `Inimigo não entrou no campo do jogador: y=${enemy.y}`);
-  assert.ok(Math.abs(enemy.x - GAME_CONFIG.bridges[1]) < 3, `Inimigo saiu da ponte: x=${enemy.x}`);
+  assert.equal(enteredWater, false, 'Inimigo entrou na água fora da ponte.');
+  assert.ok(enemy.y > GAME_CONFIG.river.bottom, `Inimigo não chegou ao campo do jogador: y=${enemy.y}`);
 }
 
 {
-  // Reproduz o bug visto no celular: a tropa detecta um inimigo perto da
-  // saída da ponte. Mesmo que ele esteja dentro do alcance de ataque, a
-  // travessia precisa terminar antes do combate.
+  // A ponte é terreno normal: a unidade pode parar para combater em cima dela
+  // e, quando o alvo morrer, deve continuar avançando pelo mesmo caminho.
   const player = new Unit({
-    team: 'player',
-    lane: 0,
-    x: 88,
-    y: 352,
-    stats,
-    config: GAME_CONFIG,
+    team: 'player', lane: 0, x: 88, y: 360, stats, config: GAME_CONFIG,
   });
-  const enemyNearExit = new Unit({
-    team: 'enemy',
-    lane: 0,
-    x: 88,
-    y: 286,
-    stats,
-    config: GAME_CONFIG,
+  const enemyOnBridge = new Unit({
+    team: 'enemy', lane: 0, x: 88, y: 318, stats, config: GAME_CONFIG,
   });
+  enemyOnBridge.hp = stats.damage;
+  enemyOnBridge.maxHp = stats.damage;
+
   const target = makeStructure('enemy', 0, 88, 154);
+  let foughtOnBridge = false;
 
-  enemyNearExit.takeDamage = () => {};
+  simulate(player, [player, enemyOnBridge], [target], 5, (unit) => {
+    const playerInRiver = unit.y >= GAME_CONFIG.river.top && unit.y <= GAME_CONFIG.river.bottom;
+    if (playerInRiver && enemyOnBridge.hp < enemyOnBridge.maxHp) foughtOnBridge = true;
+  });
 
-  simulate(player, [player, enemyNearExit], [target], 4);
-
-  assert.ok(player.crossedRiver, `Combate interrompeu a travessia: y=${player.y}`);
-  assert.ok(
-    player.y <= GAME_CONFIG.river.top - 12,
-    `Jogador ficou preso na saída da ponte: y=${player.y}`,
-  );
+  assert.equal(enemyOnBridge.alive, false, 'Inimigo sobre a ponte não foi derrotado.');
+  assert.equal(foughtOnBridge, true, 'Não houve combate enquanto a tropa estava sobre a ponte.');
+  assert.ok(player.y < GAME_CONFIG.river.top, `Jogador não continuou após lutar na ponte: y=${player.y}`);
 }
 
 console.log('navigation.test.js: PASS');
