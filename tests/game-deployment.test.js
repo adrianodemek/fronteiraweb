@@ -17,7 +17,7 @@ function makeCanvas() {
   const game = new Game(makeCanvas());
 
   assert.equal(
-    game.tryDeployUnit('player', 80, 260),
+    game.tryDeployUnit('player', 80, 220),
     false,
     'Antes de destruir a base esquerda, o pocket deve estar bloqueado.',
   );
@@ -27,21 +27,21 @@ function makeCanvas() {
   enemyLeft.hp = 0;
 
   assert.equal(
-    game.tryDeployUnit('player', 80, 260),
+    game.tryDeployUnit('player', 80, 220),
     true,
-    'Depois de destruir a base esquerda, o Game deve aceitar deploy no pocket esquerdo.',
+    'Depois de destruir a base esquerda, o Game deve aceitar deploy no quarto tile do pocket.',
   );
   assert.equal(game.units.length, 1, 'Uma tropa deve nascer no pocket esquerdo liberado.');
   assert.equal(game.units[0].lane, 0, 'A tropa deve nascer na lane esquerda liberada.');
 
   assert.equal(
-    game.tryDeployUnit('player', 80, 220),
+    game.tryDeployUnit('player', 80, 200),
     false,
-    'Mesmo após destruir a base, área profunda do campo inimigo deve continuar bloqueada.',
+    'Mesmo após destruir a base, área além dos quatro tiles deve continuar bloqueada.',
   );
 
   assert.equal(
-    game.tryDeployUnit('player', 280, 260),
+    game.tryDeployUnit('player', 280, 220),
     false,
     'O pocket direito continua bloqueado enquanto sua base estiver viva.',
   );
@@ -50,7 +50,7 @@ function makeCanvas() {
   enemyRight.hp = 0;
 
   assert.equal(
-    game.tryDeployUnit('player', 280, 260),
+    game.tryDeployUnit('player', 280, 220),
     true,
     'Depois de destruir a base direita, o Game deve aceitar deploy no pocket direito.',
   );
