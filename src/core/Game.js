@@ -1,8 +1,8 @@
-import { GAME_CONFIG } from '../config.js?v=0.1.8';
+import { GAME_CONFIG } from '../config.js?v=0.1.9';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.1.8';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.8';
+import { Unit } from '../entities/Unit.js?v=0.1.9';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.9';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -148,32 +148,11 @@ export class Game {
   }
 
   drawDeploymentZones() {
-    const { ctx, config } = this;
     const rects = this.deployment.getDeployRects('player', this.structures);
 
+    this.ctx.fillStyle = 'rgba(236, 227, 189, 0.055)';
     for (const rect of rects) {
-      if (!rect.advanced) {
-        ctx.fillStyle = 'rgba(236, 227, 189, 0.05)';
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-        continue;
-      }
-
-      ctx.save();
-      ctx.fillStyle = 'rgba(142, 166, 108, 0.34)';
-      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-
-      ctx.strokeStyle = 'rgba(239, 227, 189, 0.95)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 4]);
-      ctx.strokeRect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4);
-
-      ctx.setLineDash([]);
-      ctx.fillStyle = config.palette.ui;
-      ctx.font = 'bold 8px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('ÁREA LIBERADA', rect.x + rect.width / 2, rect.y + 11);
-      ctx.restore();
+      this.ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
   }
 
