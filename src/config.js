@@ -1,5 +1,5 @@
 export const GAME_CONFIG = Object.freeze({
-  version: '0.1.9',
+  version: '0.2.0',
   width: 360,
   height: 640,
   arenaGrid: {
@@ -14,9 +14,9 @@ export const GAME_CONFIG = Object.freeze({
   },
   bridges: [88, 272],
   bridgeWidth: 44,
-  deployMargin: 18,
+  deployMargin: 0,
   deployment: {
-    pocketDepthTiles: 3,
+    pocketDepthTiles: 4,
     edgeMargin: 18,
     bottomUiMargin: 42,
     structureBuffer: 12,
