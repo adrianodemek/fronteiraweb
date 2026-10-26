@@ -1,4 +1,4 @@
-import { distance } from '../utils/math.js?v=0.1.6';
+import { distance } from '../utils/math.js?v=0.1.8';
 
 export class DeploymentSystem {
   constructor(config) {
@@ -56,6 +56,7 @@ export class DeploymentSystem {
       return {
         lane: null,
         advanced: false,
+        kind: 'home',
         x: 0,
         y,
         width,
@@ -67,6 +68,7 @@ export class DeploymentSystem {
     return {
       lane: null,
       advanced: false,
+      kind: 'home',
       x: 0,
       y,
       width,
@@ -74,30 +76,33 @@ export class DeploymentSystem {
     };
   }
 
-  getAdvancedRect(team, lane) {
-    const { height, river, deployMargin, deployment } = this.config;
+  getPocketRect(team, lane) {
+    const { river, deployment } = this.config;
     const laneBounds = this.getLaneBounds(lane);
+    const depth = deployment.pocketDepth;
 
+    // Clash Royale: depois que a torre lateral cai, abre apenas um pocket
+    // curto logo alem do rio naquela lane. Nao libera metade inteira do mapa.
     if (team === 'player') {
-      const y = deployment.advanceInset;
       return {
         lane,
         advanced: true,
+        kind: 'pocket',
         x: laneBounds.x,
-        y,
+        y: river.top - depth,
         width: laneBounds.width,
-        height: river.top - deployMargin - y,
+        height: depth,
       };
     }
 
-    const y = river.bottom + deployMargin;
     return {
       lane,
       advanced: true,
+      kind: 'pocket',
       x: laneBounds.x,
-      y,
+      y: river.bottom,
       width: laneBounds.width,
-      height: height - deployment.advanceInset - y,
+      height: depth,
     };
   }
 
@@ -108,7 +113,7 @@ export class DeploymentSystem {
     for (const lane of [0, 1]) {
       const enemyBase = this.getBase(structures, opponent, lane);
       if (enemyBase && !enemyBase.alive) {
-        rects.push(this.getAdvancedRect(team, lane));
+        rects.push(this.getPocketRect(team, lane));
       }
     }
 
