@@ -1,8 +1,9 @@
-import { GAME_CONFIG } from '../config.js?v=0.2.1';
+import { GAME_CONFIG } from '../config.js?v=0.3.0';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js?v=0.2.1';
 import { Unit } from '../entities/Unit.js?v=0.2.1';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.2.1';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.2.0';
+import { SupplySystem } from '../systems/Supply.js?v=0.3.0';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -13,10 +14,12 @@ export class Game {
     this.config = GAME_CONFIG;
     this.battlefield = new Battlefield(this.config);
     this.deployment = new DeploymentSystem(this.config);
+    this.supplies = new SupplySystem(this.config);
     this.lastTime = 0;
     this.elapsed = 0;
     this.enemySpawnClock = 1.8;
     this.enemyLane = 0;
+    this.resourceDeniedFlash = 0;
 
     this.handlePointerDown = this.handlePointerDown.bind(this);
     this.loop = this.loop.bind(this);
@@ -33,6 +36,8 @@ export class Game {
     this.result = '';
     this.enemySpawnClock = 1.8;
     this.enemyLane = 0;
+    this.resourceDeniedFlash = 0;
+    this.supplies.reset();
   }
 
   start() {
@@ -53,12 +58,25 @@ export class Game {
 
   update(dt) {
     this.remaining = Math.max(0, this.remaining - dt);
+    this.resourceDeniedFlash = Math.max(0, this.resourceDeniedFlash - dt);
+    this.supplies.update(dt, this.remaining);
     this.enemySpawnClock -= dt;
 
     if (this.enemySpawnClock <= 0) {
-      this.spawnUnit('enemy', this.enemyLane, this.config.bridges[this.enemyLane], 218);
-      this.enemyLane = this.enemyLane === 0 ? 1 : 0;
-      this.enemySpawnClock = 4.1;
+      const lane = this.enemyLane;
+      const deployed = this.tryDeployUnit(
+        'enemy',
+        this.config.bridges[lane],
+        218,
+        this.config.costs.infantry,
+      );
+
+      if (deployed) {
+        this.enemyLane = lane === 0 ? 1 : 0;
+        this.enemySpawnClock = 4.1;
+      } else {
+        this.enemySpawnClock = 0.35;
+      }
     }
 
     this.syncHqActivation();
@@ -136,16 +154,25 @@ export class Game {
     return true;
   }
 
-  tryDeployUnit(team, x, y) {
+  tryDeployUnit(team, x, y, cost = this.config.costs.infantry) {
     if (this.state !== 'playing') return false;
     if (!this.deployment.isDeployAllowed(team, x, y, this.structures)) return false;
+
+    if (!this.supplies.canSpend(team, cost)) {
+      if (team === 'player') this.resourceDeniedFlash = 0.3;
+      return false;
+    }
 
     const lane = Math.abs(x - this.config.bridges[0]) <= Math.abs(x - this.config.bridges[1]) ? 0 : 1;
     const { edgeMargin, bottomUiMargin } = this.config.deployment;
     const spawnX = clamp(x, edgeMargin, this.config.width - edgeMargin);
     const spawnY = clamp(y, edgeMargin, this.config.height - bottomUiMargin);
 
-    return this.spawnUnit(team, lane, spawnX, spawnY);
+    const spawned = this.spawnUnit(team, lane, spawnX, spawnY);
+    if (!spawned) return false;
+
+    this.supplies.spend(team, cost);
+    return true;
   }
 
   handlePointerDown(event) {
@@ -160,7 +187,7 @@ export class Game {
     const x = ((event.clientX - rect.left) / rect.width) * this.config.width;
     const y = ((event.clientY - rect.top) / rect.height) * this.config.height;
 
-    this.tryDeployUnit('player', x, y);
+    this.tryDeployUnit('player', x, y, this.config.costs.infantry);
   }
 
   drawDeploymentZones() {
@@ -170,6 +197,48 @@ export class Game {
     for (const rect of rects) {
       this.ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
+  }
+
+  drawSupplyHud() {
+    const { ctx } = this;
+    const { width, palette, supplies, costs } = this.config;
+    const current = this.supplies.get('player');
+    const multiplier = this.supplies.getMultiplier(this.remaining);
+    const denied = this.resourceDeniedFlash > 0;
+    const segmentWidth = 24;
+    const segmentHeight = 10;
+    const gap = 2;
+    const totalWidth = supplies.max * segmentWidth + (supplies.max - 1) * gap;
+    const startX = Math.round((width - totalWidth) / 2);
+    const barY = 608;
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = denied ? '#d66b5e' : palette.ui;
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText(
+      `SUPRIMENTOS ${current.toFixed(1)}/${supplies.max}${multiplier > 1 ? '  x2' : ''}`,
+      width / 2,
+      599,
+    );
+
+    for (let i = 0; i < supplies.max; i += 1) {
+      const x = startX + i * (segmentWidth + gap);
+      const amount = clamp(current - i, 0, 1);
+
+      ctx.fillStyle = 'rgba(20, 25, 20, 0.82)';
+      ctx.fillRect(x, barY, segmentWidth, segmentHeight);
+      ctx.strokeStyle = denied ? '#d66b5e' : palette.ui;
+      ctx.strokeRect(x + 0.5, barY + 0.5, segmentWidth - 1, segmentHeight - 1);
+
+      if (amount > 0) {
+        ctx.fillStyle = denied ? '#d66b5e' : '#d7c86c';
+        ctx.fillRect(x + 2, barY + 2, Math.round((segmentWidth - 4) * amount), segmentHeight - 4);
+      }
+    }
+
+    ctx.fillStyle = palette.ui;
+    ctx.font = '7px monospace';
+    ctx.fillText(`INFANTARIA = ${costs.infantry}`, width / 2, 628);
   }
 
   draw() {
@@ -217,11 +286,13 @@ export class Game {
 
     ctx.font = 'bold 8px monospace';
     ctx.fillText('INIMIGO', width / 2, 43);
-    ctx.fillText('SEU CAMPO', width / 2, 619);
+    ctx.fillText('SEU CAMPO', width / 2, 586);
 
     ctx.textAlign = 'right';
     ctx.font = '7px monospace';
     ctx.fillText(`V${version}`, width - 6, 10);
+
+    if (this.state === 'playing') this.drawSupplyHud();
 
     if (this.state === 'finished') {
       ctx.textAlign = 'center';
