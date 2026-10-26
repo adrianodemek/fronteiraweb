@@ -14,7 +14,7 @@ function makeCanvas() {
     },
     addEventListener() {},
     getBoundingClientRect() {
-      return { left: 0, top: 0, width: 360, height: 640 };
+      return { left: 0, top: 0, width: 360, height: 800 };
     },
   };
 }
