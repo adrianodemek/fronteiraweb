@@ -1,11 +1,12 @@
 import { distance, moveToward } from '../utils/math.js?v=0.1.5';
 
 export class Unit {
-  constructor({ team, x, y, lane, stats, config }) {
+  constructor({ team, x, y, lane, stats, config, type = 'rifleman' }) {
     this.team = team;
     this.x = x;
     this.y = y;
     this.lane = lane;
+    this.type = type;
     this.config = config;
     this.maxHp = stats.hp;
     this.hp = stats.hp;
@@ -15,6 +16,9 @@ export class Unit {
     this.attackDelay = stats.attackDelay;
     this.aggroRange = stats.aggroRange;
     this.radius = stats.radius;
+    this.splashRadius = stats.splashRadius ?? 0;
+    this.splashFactor = stats.splashFactor ?? 0.6;
+    this.visual = stats.visual ?? type;
     this.cooldown = 0;
     this.flash = 0;
   }
@@ -85,11 +89,8 @@ export class Unit {
     const targetSide = this.getRiverSide(target.y);
     const bankGap = 7;
 
-    // Mesmo lado: não há rio no caminho.
     if (currentSide !== 0 && currentSide === targetSide) return target;
 
-    // Sobre a ponte: ela é terreno normal. Apenas mantemos a rota dentro da
-    // abertura para que a unidade não tente cortar diagonalmente pela água.
     if (currentSide === 0) {
       if (!this.isInsideLaneBridge(this.x)) {
         return { x: bridgeX, y: this.y };
@@ -100,8 +101,6 @@ export class Unit {
       return target;
     }
 
-    // De baixo para cima. Primeiro alinha horizontalmente com a ponte.
-    // Depois de alcançar o barranco, continua sempre em frente — sem oscilar.
     if (currentSide > 0 && targetSide <= 0) {
       if (!this.isInsideLaneBridge(this.x)) {
         return { x: bridgeX, y: Math.max(this.y, river.bottom + bankGap) };
@@ -116,7 +115,6 @@ export class Unit {
         : { x: bridgeX, y: river.top - bankGap };
     }
 
-    // De cima para baixo, regra espelhada.
     if (currentSide < 0 && targetSide >= 0) {
       if (!this.isInsideLaneBridge(this.x)) {
         return { x: bridgeX, y: Math.min(this.y, river.top - bankGap) };
@@ -134,6 +132,20 @@ export class Unit {
     return target;
   }
 
+  attack(target, units) {
+    target.takeDamage(this.damage);
+
+    if (this.splashRadius <= 0) return;
+
+    const splashDamage = Math.max(1, Math.round(this.damage * this.splashFactor));
+    for (const unit of units) {
+      if (!unit.alive || unit.team === this.team || unit === target) continue;
+      if (distance(unit, target) <= this.splashRadius) {
+        unit.takeDamage(splashDamage);
+      }
+    }
+  }
+
   update(dt, units, structures) {
     if (!this.alive) return;
 
@@ -144,13 +156,12 @@ export class Unit {
     const target = enemyUnit ?? this.getEnemyStructure(structures);
     if (!target) return;
 
-    // A ponte é chão comum: combate pode acontecer nela ou nas bordas.
     const reach = this.attackRange + (target.hitRadius ?? target.radius ?? 0);
     const d = distance(this, target);
 
     if (d <= reach) {
       if (this.cooldown <= 0) {
-        target.takeDamage(this.damage);
+        this.attack(target, units);
         this.cooldown = this.attackDelay;
         this.flash = 0.1;
       }
@@ -161,6 +172,76 @@ export class Unit {
     moveToward(this, point, this.speed * dt);
   }
 
+  drawEquipment(ctx, px, py, up, body, light) {
+    const direction = up ? 1 : -1;
+
+    if (this.visual === 'grenadier') {
+      ctx.fillStyle = '#4a4031';
+      ctx.fillRect(px - 7, py - 1, 4, 7);
+      ctx.fillStyle = '#756247';
+      ctx.fillRect(px + 4, py - 1, 4, 4);
+      return;
+    }
+
+    if (this.visual === 'machinegun') {
+      ctx.fillStyle = '#332d24';
+      ctx.fillRect(px + 4 * direction, py - 2 * direction, 13 * direction, 3);
+      ctx.fillStyle = '#242820';
+      ctx.fillRect(px + 13 * direction, py - 3, 3, 6);
+      ctx.fillRect(px + 8 * direction, py + 3, 2, 5);
+      return;
+    }
+
+    if (this.visual === 'scout') {
+      ctx.fillStyle = '#3c3429';
+      ctx.fillRect(px + 3 * direction, py - 2 * direction, 9 * direction, 2);
+      ctx.fillStyle = light;
+      ctx.fillRect(px - 3, py - 8, 6, 2);
+      return;
+    }
+
+    if (this.visual === 'medic') {
+      ctx.fillStyle = '#e7e2cf';
+      ctx.fillRect(px - 3, py - 1, 6, 6);
+      ctx.fillStyle = '#a24f47';
+      ctx.fillRect(px - 1, py, 2, 4);
+      ctx.fillRect(px - 2, py + 1, 4, 2);
+      return;
+    }
+
+    if (this.visual === 'engineer') {
+      ctx.fillStyle = '#6c5d43';
+      ctx.fillRect(px - 7, py - 2, 4, 8);
+      ctx.fillStyle = '#353027';
+      ctx.fillRect(px + 4 * direction, py, 8 * direction, 2);
+      return;
+    }
+
+    if (this.visual === 'mortar') {
+      ctx.fillStyle = '#353a31';
+      ctx.fillRect(px - 7, py - 3, 4, 10);
+      ctx.fillRect(px - 8, py - 5, 6, 3);
+      return;
+    }
+
+    if (this.visual === 'assault') {
+      ctx.fillStyle = '#332b22';
+      ctx.fillRect(px + 4 * direction, py - 1 * direction, 9 * direction, 3);
+      ctx.fillStyle = body;
+      ctx.fillRect(px - 6, py + 2, 3, 4);
+      return;
+    }
+
+    ctx.fillStyle = '#3b3329';
+    if (up) {
+      ctx.fillRect(px + 4, py - 3, 8, 2);
+      ctx.fillRect(px + 10, py - 5, 2, 4);
+    } else {
+      ctx.fillRect(px - 12, py + 1, 8, 2);
+      ctx.fillRect(px - 12, py, 2, 4);
+    }
+  }
+
   draw(ctx, palette) {
     if (!this.alive) return;
 
@@ -169,15 +250,18 @@ export class Unit {
     const up = this.team === 'player';
     const body = this.team === 'player' ? palette.player : palette.enemy;
     const light = this.team === 'player' ? palette.playerLight : palette.enemyLight;
+    const wide = this.visual === 'machinegun' || this.visual === 'mortar';
+    const bodyWidth = wide ? 10 : 8;
+    const halfBody = Math.round(bodyWidth / 2);
 
     ctx.fillStyle = 'rgba(24, 28, 22, 0.35)';
     ctx.fillRect(px - 6, py + 5, 12, 4);
 
     ctx.fillStyle = palette.outline;
-    ctx.fillRect(px - 5, py - 4, 10, 10);
+    ctx.fillRect(px - halfBody - 1, py - 4, bodyWidth + 2, 10);
 
     ctx.fillStyle = this.flash > 0 ? light : body;
-    ctx.fillRect(px - 4, py - 3, 8, 8);
+    ctx.fillRect(px - halfBody, py - 3, bodyWidth, 8);
 
     ctx.fillStyle = light;
     ctx.fillRect(px - 4, py - 7, 8, 4);
@@ -188,14 +272,7 @@ export class Unit {
     ctx.fillRect(px - 5, py + 5, 3, 3);
     ctx.fillRect(px + 2, py + 5, 3, 3);
 
-    ctx.fillStyle = '#3b3329';
-    if (up) {
-      ctx.fillRect(px + 4, py - 3, 8, 2);
-      ctx.fillRect(px + 10, py - 5, 2, 4);
-    } else {
-      ctx.fillRect(px - 12, py + 1, 8, 2);
-      ctx.fillRect(px - 12, py, 2, 4);
-    }
+    this.drawEquipment(ctx, px, py, up, body, light);
 
     const ratio = this.hp / this.maxHp;
     if (ratio < 1) {
