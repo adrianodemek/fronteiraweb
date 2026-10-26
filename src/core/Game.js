@@ -1,8 +1,8 @@
-import { GAME_CONFIG } from '../config.js?v=0.1.6';
+import { GAME_CONFIG } from '../config.js?v=0.1.7';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.1.6';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.6';
+import { Unit } from '../entities/Unit.js?v=0.1.7';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.7';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -107,7 +107,7 @@ export class Game {
   }
 
   spawnUnit(team, lane, x, y) {
-    if (this.units.length >= 70) return;
+    if (this.units.length >= 70) return false;
 
     this.units.push(new Unit({
       team,
@@ -117,6 +117,19 @@ export class Game {
       stats: this.config.infantry,
       config: this.config,
     }));
+    return true;
+  }
+
+  tryDeployUnit(team, x, y) {
+    if (this.state !== 'playing') return false;
+    if (!this.deployment.isDeployAllowed(team, x, y, this.structures)) return false;
+
+    const lane = Math.abs(x - this.config.bridges[0]) <= Math.abs(x - this.config.bridges[1]) ? 0 : 1;
+    const { edgeMargin, bottomUiMargin } = this.config.deployment;
+    const spawnX = clamp(x, edgeMargin, this.config.width - edgeMargin);
+    const spawnY = clamp(y, edgeMargin, this.config.height - bottomUiMargin);
+
+    return this.spawnUnit(team, lane, spawnX, spawnY);
   }
 
   handlePointerDown(event) {
@@ -131,13 +144,7 @@ export class Game {
     const x = ((event.clientX - rect.left) / rect.width) * this.config.width;
     const y = ((event.clientY - rect.top) / rect.height) * this.config.height;
 
-    if (!this.deployment.isDeployAllowed('player', x, y, this.structures)) return;
-
-    const lane = Math.abs(x - this.config.bridges[0]) <= Math.abs(x - this.config.bridges[1]) ? 0 : 1;
-    const { edgeMargin, bottomUiMargin } = this.config.deployment;
-    const spawnX = clamp(x, edgeMargin, this.config.width - edgeMargin);
-    const spawnY = clamp(y, edgeMargin, this.config.height - bottomUiMargin);
-    this.spawnUnit('player', lane, spawnX, spawnY);
+    this.tryDeployUnit('player', x, y);
   }
 
   drawDeploymentZones() {
@@ -145,17 +152,24 @@ export class Game {
     const rects = this.deployment.getDeployRects('player', this.structures);
 
     for (const rect of rects) {
-      ctx.fillStyle = rect.advanced
-        ? 'rgba(236, 227, 189, 0.11)'
-        : 'rgba(236, 227, 189, 0.06)';
-      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-
       if (rect.advanced) {
+        ctx.fillStyle = 'rgba(215, 230, 174, 0.20)';
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
         ctx.save();
-        ctx.strokeStyle = 'rgba(239, 227, 189, 0.34)';
-        ctx.setLineDash([4, 4]);
-        ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+        ctx.strokeStyle = 'rgba(247, 239, 195, 0.82)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(
+          Math.round(rect.x + 2),
+          Math.round(rect.y + 2),
+          Math.round(rect.width - 4),
+          Math.round(rect.height - 4),
+        );
         ctx.restore();
+      } else {
+        ctx.fillStyle = 'rgba(236, 227, 189, 0.06)';
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
       }
     }
   }
@@ -167,6 +181,10 @@ export class Game {
     ctx.clearRect(0, 0, width, height);
     this.battlefield.draw(ctx, this.elapsed);
 
+    if (this.state === 'playing') {
+      this.drawDeploymentZones();
+    }
+
     for (const structure of this.structures) {
       structure.draw(ctx, palette);
     }
@@ -174,10 +192,6 @@ export class Game {
     const orderedUnits = [...this.units].sort((a, b) => a.y - b.y);
     for (const unit of orderedUnits) {
       unit.draw(ctx, palette);
-    }
-
-    if (this.state === 'playing') {
-      this.drawDeploymentZones();
     }
 
     this.drawHud();
