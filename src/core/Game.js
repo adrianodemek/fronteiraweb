@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from '../config.js';
+import { GAME_CONFIG } from '../config.js?v=0.1.6';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
 import { Unit } from '../entities/Unit.js?v=0.1.6';
