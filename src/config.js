@@ -1,4 +1,5 @@
 export const GAME_CONFIG = Object.freeze({
+  version: '0.1.8',
   width: 360,
   height: 640,
   battleDuration: 180,
@@ -10,7 +11,7 @@ export const GAME_CONFIG = Object.freeze({
   bridgeWidth: 44,
   deployMargin: 18,
   deployment: {
-    advanceInset: 96,
+    pocketDepth: 60,
     edgeMargin: 18,
     bottomUiMargin: 42,
     structureBuffer: 12,
