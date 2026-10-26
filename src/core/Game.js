@@ -1,9 +1,10 @@
-import { GAME_CONFIG } from '../config.js?v=0.3.0';
-import { Battlefield } from '../world/Battlefield.js';
-import { Structure } from '../entities/Structure.js?v=0.2.1';
+import { GAME_CONFIG } from '../config.js?v=0.4.0';
+import { Battlefield } from '../world/Battlefield.js?v=0.4.0';
+import { Structure } from '../entities/Structure.js?v=0.4.0';
 import { Unit } from '../entities/Unit.js?v=0.2.1';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.2.0';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.4.0';
 import { SupplySystem } from '../systems/Supply.js?v=0.3.0';
+import { CardSystem } from '../systems/Cards.js?v=0.4.0';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -15,6 +16,7 @@ export class Game {
     this.battlefield = new Battlefield(this.config);
     this.deployment = new DeploymentSystem(this.config);
     this.supplies = new SupplySystem(this.config);
+    this.cards = new CardSystem(this.config);
     this.lastTime = 0;
     this.elapsed = 0;
     this.enemySpawnClock = 1.8;
@@ -38,6 +40,7 @@ export class Game {
     this.enemyLane = 0;
     this.resourceDeniedFlash = 0;
     this.supplies.reset();
+    this.cards.reset();
   }
 
   start() {
@@ -67,7 +70,7 @@ export class Game {
       const deployed = this.tryDeployUnit(
         'enemy',
         this.config.bridges[lane],
-        218,
+        this.config.river.top - 76,
         this.config.costs.infantry,
       );
 
@@ -164,9 +167,13 @@ export class Game {
     }
 
     const lane = Math.abs(x - this.config.bridges[0]) <= Math.abs(x - this.config.bridges[1]) ? 0 : 1;
-    const { edgeMargin, bottomUiMargin } = this.config.deployment;
+    const { edgeMargin } = this.config.deployment;
     const spawnX = clamp(x, edgeMargin, this.config.width - edgeMargin);
-    const spawnY = clamp(y, edgeMargin, this.config.height - bottomUiMargin);
+    const spawnY = clamp(
+      y,
+      this.config.battlefield.top + edgeMargin,
+      this.config.battlefield.bottom - edgeMargin,
+    );
 
     const spawned = this.spawnUnit(team, lane, spawnX, spawnY);
     if (!spawned) return false;
@@ -187,58 +194,234 @@ export class Game {
     const x = ((event.clientX - rect.left) / rect.width) * this.config.width;
     const y = ((event.clientY - rect.top) / rect.height) * this.config.height;
 
-    this.tryDeployUnit('player', x, y, this.config.costs.infantry);
+    if (y >= this.config.hud.top) {
+      const index = this.cards.getCardIndexAt(x, y);
+      if (index >= 0) this.cards.select(index);
+      return;
+    }
+
+    const card = this.cards.selectedCard;
+    if (!card) return;
+
+    const deployed = this.tryDeployUnit('player', x, y, card.cost);
+    if (deployed) this.cards.playSelected();
   }
 
   drawDeploymentZones() {
     const rects = this.deployment.getDeployRects('player', this.structures);
 
-    this.ctx.fillStyle = 'rgba(236, 227, 189, 0.055)';
+    this.ctx.fillStyle = 'rgba(239, 227, 189, 0.035)';
     for (const rect of rects) {
       this.ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     }
   }
 
+  drawTopHud() {
+    const { ctx } = this;
+    const { width, hud, palette, version } = this.config;
+    const totalSeconds = Math.ceil(this.remaining);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+
+    ctx.save();
+
+    ctx.fillStyle = 'rgba(13, 22, 18, 0.68)';
+    ctx.fillRect(7, 34, 116, 45);
+    ctx.fillStyle = palette.ui;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('INIMIGO', 34, 49);
+    ctx.font = '7px monospace';
+    ctx.fillText('BATALHÃO', 34, 62);
+    ctx.fillText('★ 0', 34, 74);
+
+    ctx.strokeStyle = palette.ui;
+    ctx.strokeRect(12.5, 42.5, 16, 18);
+    ctx.beginPath();
+    ctx.moveTo(20, 38);
+    ctx.lineTo(29, 43);
+    ctx.lineTo(29, 59);
+    ctx.lineTo(20, 64);
+    ctx.lineTo(11, 59);
+    ctx.lineTo(11, 43);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(13, 18, 15, 0.86)';
+    ctx.fillRect(hud.timerX, hud.timerY, hud.timerWidth, hud.timerHeight);
+    ctx.strokeStyle = '#0a0d0b';
+    ctx.strokeRect(hud.timerX + 0.5, hud.timerY + 0.5, hud.timerWidth - 1, hud.timerHeight - 1);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = palette.ui;
+    ctx.font = 'bold 6px monospace';
+    ctx.fillText('RESTANTE:', hud.timerX + hud.timerWidth / 2, hud.timerY + 10);
+    ctx.font = 'bold 15px monospace';
+    ctx.fillText(`${minutes}:${seconds}`, hud.timerX + hud.timerWidth / 2, hud.timerY + 27);
+
+    ctx.textAlign = 'right';
+    ctx.font = '6px monospace';
+    ctx.fillStyle = 'rgba(239,227,189,0.75)';
+    ctx.fillText(`V${version}`, width - 5, this.config.hud.top - 7);
+
+    ctx.restore();
+  }
+
+  drawCardHud() {
+    const { ctx } = this;
+    const { width, height, hud, palette } = this.config;
+
+    ctx.save();
+    ctx.fillStyle = palette.hudDark;
+    ctx.fillRect(0, hud.top, width, height - hud.top);
+    ctx.fillStyle = palette.hud;
+    ctx.fillRect(0, hud.top + 5, width, height - hud.top - 5);
+    ctx.fillStyle = palette.hudLight;
+    ctx.fillRect(0, hud.top, width, 7);
+
+    ctx.fillStyle = 'rgba(9, 25, 35, 0.9)';
+    ctx.fillRect(0, hud.top + 7, 65, height - hud.top - 7);
+    ctx.strokeStyle = 'rgba(220,235,235,0.22)';
+    ctx.strokeRect(64.5, hud.top + 7.5, 1, height - hud.top - 9);
+
+    ctx.fillStyle = palette.ui;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText('PRÓXIMA:', 32, hud.top + 61);
+
+    const next = this.cards.nextCard;
+    if (next) this.drawMiniCard(next);
+
+    for (let index = 0; index < this.cards.hand.length; index += 1) {
+      this.drawCard(this.cards.hand[index], index);
+    }
+
+    this.drawSupplyHud();
+    ctx.restore();
+  }
+
+  drawMiniCard(card) {
+    const { ctx } = this;
+    const { hud, palette } = this.config;
+    const x = hud.nextX + 11;
+    const y = hud.nextY + 16;
+    const w = 31;
+    const h = 35;
+
+    ctx.fillStyle = '#101917';
+    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+    ctx.fillStyle = card.accent;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = palette.ui;
+    ctx.font = 'bold 6px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(card.short, x + w / 2, y + 20);
+    ctx.fillStyle = '#d7b448';
+    ctx.fillRect(x + w - 10, y + h - 10, 10, 10);
+    ctx.fillStyle = '#1a1a15';
+    ctx.font = 'bold 7px monospace';
+    ctx.fillText(`${card.cost}`, x + w - 5, y + h - 5);
+  }
+
+  drawCard(card, index) {
+    const { ctx } = this;
+    const { hud, palette } = this.config;
+    const rect = this.cards.getCardRect(index);
+    const selected = this.cards.selectedIndex === index;
+    const y = selected ? rect.y - 7 : rect.y;
+
+    ctx.fillStyle = selected ? palette.ui : '#0b1518';
+    ctx.fillRect(rect.x - 2, y - 2, rect.width + 4, rect.height + 4);
+
+    ctx.fillStyle = '#c9c5ae';
+    ctx.fillRect(rect.x, y, rect.width, rect.height);
+    ctx.fillStyle = card.accent;
+    ctx.fillRect(rect.x + 3, y + 3, rect.width - 6, rect.height - 6);
+
+    ctx.fillStyle = 'rgba(20, 27, 21, 0.30)';
+    ctx.fillRect(rect.x + 8, y + 10, rect.width - 16, 36);
+
+    this.drawCardSoldierIcon(rect.x + rect.width / 2, y + 27, card.accent);
+
+    ctx.fillStyle = 'rgba(12, 18, 15, 0.82)';
+    ctx.fillRect(rect.x + 3, y + 51, rect.width - 6, 20);
+    ctx.fillStyle = palette.ui;
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(card.short, rect.x + rect.width / 2, y + 62);
+
+    const bubbleX = rect.x + rect.width - 10;
+    const bubbleY = y + rect.height - 7;
+    ctx.fillStyle = '#d7b448';
+    ctx.beginPath();
+    ctx.arc(bubbleX, bubbleY, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#201d14';
+    ctx.stroke();
+    ctx.fillStyle = '#181812';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText(`${card.cost}`, bubbleX, bubbleY + 1);
+  }
+
+  drawCardSoldierIcon(cx, cy) {
+    const { ctx } = this;
+    ctx.fillStyle = '#252b27';
+    ctx.fillRect(Math.round(cx - 9), Math.round(cy + 4), 18, 13);
+    ctx.fillStyle = '#d0b08a';
+    ctx.fillRect(Math.round(cx - 6), Math.round(cy - 6), 12, 10);
+    ctx.fillStyle = '#3e493b';
+    ctx.fillRect(Math.round(cx - 8), Math.round(cy - 9), 16, 5);
+    ctx.fillStyle = '#2c261e';
+    ctx.fillRect(Math.round(cx + 6), Math.round(cy + 2), 15, 3);
+  }
+
   drawSupplyHud() {
     const { ctx } = this;
-    const { width, palette, supplies, costs } = this.config;
+    const { hud, palette, supplies } = this.config;
     const current = this.supplies.get('player');
     const multiplier = this.supplies.getMultiplier(this.remaining);
     const denied = this.resourceDeniedFlash > 0;
-    const segmentWidth = 24;
-    const segmentHeight = 10;
-    const gap = 2;
-    const totalWidth = supplies.max * segmentWidth + (supplies.max - 1) * gap;
-    const startX = Math.round((width - totalWidth) / 2);
-    const barY = 608;
+    const ratio = clamp(current / supplies.max, 0, 1);
 
-    ctx.textAlign = 'center';
-    ctx.fillStyle = denied ? '#d66b5e' : palette.ui;
-    ctx.font = 'bold 8px monospace';
-    ctx.fillText(
-      `SUPRIMENTOS ${current.toFixed(1)}/${supplies.max}${multiplier > 1 ? '  x2' : ''}`,
-      width / 2,
-      599,
+    ctx.fillStyle = '#0a1418';
+    ctx.fillRect(hud.supplyX, hud.supplyY, hud.supplyWidth, hud.supplyHeight);
+    ctx.strokeStyle = denied ? '#d66b5e' : '#c9d4cb';
+    ctx.strokeRect(hud.supplyX + 0.5, hud.supplyY + 0.5, hud.supplyWidth - 1, hud.supplyHeight - 1);
+
+    ctx.fillStyle = denied ? '#b65a50' : palette.supply;
+    ctx.fillRect(
+      hud.supplyX + 3,
+      hud.supplyY + 3,
+      Math.round((hud.supplyWidth - 6) * ratio),
+      hud.supplyHeight - 6,
     );
 
-    for (let i = 0; i < supplies.max; i += 1) {
-      const x = startX + i * (segmentWidth + gap);
-      const amount = clamp(current - i, 0, 1);
-
-      ctx.fillStyle = 'rgba(20, 25, 20, 0.82)';
-      ctx.fillRect(x, barY, segmentWidth, segmentHeight);
-      ctx.strokeStyle = denied ? '#d66b5e' : palette.ui;
-      ctx.strokeRect(x + 0.5, barY + 0.5, segmentWidth - 1, segmentHeight - 1);
-
-      if (amount > 0) {
-        ctx.fillStyle = denied ? '#d66b5e' : '#d7c86c';
-        ctx.fillRect(x + 2, barY + 2, Math.round((segmentWidth - 4) * amount), segmentHeight - 4);
-      }
+    ctx.strokeStyle = 'rgba(20, 25, 20, 0.30)';
+    for (let i = 1; i < supplies.max; i += 1) {
+      const x = hud.supplyX + Math.round((hud.supplyWidth / supplies.max) * i);
+      ctx.beginPath();
+      ctx.moveTo(x, hud.supplyY + 2);
+      ctx.lineTo(x, hud.supplyY + hud.supplyHeight - 2);
+      ctx.stroke();
     }
 
-    ctx.fillStyle = palette.ui;
-    ctx.font = '7px monospace';
-    ctx.fillText(`INFANTARIA = ${costs.infantry}`, width / 2, 628);
+    ctx.fillStyle = denied ? '#d66b5e' : palette.supply;
+    ctx.beginPath();
+    ctx.arc(55, hud.supplyY + hud.supplyHeight / 2, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#181d18';
+    ctx.stroke();
+
+    ctx.fillStyle = '#151812';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`${Math.floor(current)}`, 55, hud.supplyY + 13);
+
+    if (multiplier > 1) {
+      ctx.fillStyle = palette.ui;
+      ctx.font = 'bold 7px monospace';
+      ctx.fillText('x2', 55, hud.supplyY - 5);
+    }
   }
 
   draw() {
@@ -261,53 +444,28 @@ export class Game {
       unit.draw(ctx, palette);
     }
 
-    this.drawHud();
+    this.drawTopHud();
+    this.drawCardHud();
+
+    if (this.state === 'finished') this.drawResultOverlay();
   }
 
-  drawHud() {
+  drawResultOverlay() {
     const { ctx } = this;
-    const { width, palette, version } = this.config;
-    const totalSeconds = Math.ceil(this.remaining);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    const { width, palette } = this.config;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
-    ctx.fillStyle = 'rgba(20, 25, 20, 0.82)';
-    ctx.fillRect(width / 2 - 33, 8, 66, 24);
+    ctx.fillStyle = 'rgba(11, 14, 12, 0.84)';
+    ctx.fillRect(35, 285, width - 70, 100);
     ctx.strokeStyle = palette.ui;
-    ctx.strokeRect(width / 2 - 33.5, 8.5, 67, 24);
-
+    ctx.strokeRect(35.5, 285.5, width - 71, 99);
     ctx.fillStyle = palette.ui;
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText(`${minutes}:${seconds}`, width / 2, 20);
-
-    ctx.font = 'bold 8px monospace';
-    ctx.fillText('INIMIGO', width / 2, 43);
-    ctx.fillText('SEU CAMPO', width / 2, 586);
-
-    ctx.textAlign = 'right';
-    ctx.font = '7px monospace';
-    ctx.fillText(`V${version}`, width - 6, 10);
-
-    if (this.state === 'playing') this.drawSupplyHud();
-
-    if (this.state === 'finished') {
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(11, 14, 12, 0.82)';
-      ctx.fillRect(35, 270, width - 70, 100);
-      ctx.strokeStyle = palette.ui;
-      ctx.strokeRect(35.5, 270.5, width - 71, 99);
-
-      ctx.fillStyle = palette.ui;
-      ctx.font = 'bold 22px monospace';
-      ctx.fillText(this.result, width / 2, 310);
-      ctx.font = '10px monospace';
-      ctx.fillText('Toque para reiniciar', width / 2, 342);
-    }
-
+    ctx.font = 'bold 22px monospace';
+    ctx.fillText(this.result, width / 2, 325);
+    ctx.font = '10px monospace';
+    ctx.fillText('Toque para reiniciar', width / 2, 357);
     ctx.restore();
   }
 }
