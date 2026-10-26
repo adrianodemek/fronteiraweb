@@ -1,7 +1,12 @@
 export const GAME_CONFIG = Object.freeze({
-  version: '0.1.8',
+  version: '0.1.9',
   width: 360,
   height: 640,
+  arenaGrid: {
+    columns: 18,
+    rows: 32,
+    tileSize: 20,
+  },
   battleDuration: 180,
   river: {
     top: 296,
@@ -11,7 +16,7 @@ export const GAME_CONFIG = Object.freeze({
   bridgeWidth: 44,
   deployMargin: 18,
   deployment: {
-    pocketDepth: 60,
+    pocketDepthTiles: 3,
     edgeMargin: 18,
     bottomUiMargin: 42,
     structureBuffer: 12,
