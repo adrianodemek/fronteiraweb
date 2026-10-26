@@ -1,4 +1,4 @@
-import { distance, moveToward } from '../utils/math.js?v=0.1.4';
+import { distance, moveToward } from '../utils/math.js?v=0.1.5';
 
 export class Unit {
   constructor({ team, x, y, lane, stats, config }) {
@@ -73,6 +73,11 @@ export class Unit {
     return this.config.bridges.some((bridgeX) => Math.abs(x - bridgeX) <= halfWalkable);
   }
 
+  isInsideLaneBridge(x) {
+    const halfWalkable = this.config.bridgeWidth / 2 - this.radius - 2;
+    return Math.abs(x - this.getBridgeX()) <= halfWalkable;
+  }
+
   getNavigationPoint(target) {
     const { river } = this.config;
     const bridgeX = this.getBridgeX();
@@ -80,35 +85,50 @@ export class Unit {
     const targetSide = this.getRiverSide(target.y);
     const bankGap = 7;
 
-    // Mesmo lado do rio: caminho normal.
+    // Mesmo lado: não há rio no caminho.
     if (currentSide !== 0 && currentSide === targetSide) return target;
 
-    // Dentro da faixa do rio só existe terreno caminhável onde há ponte.
-    // A ponte é chão normal: não bloqueia combate nem cria estado especial.
+    // Sobre a ponte: ela é terreno normal. Apenas mantemos a rota dentro da
+    // abertura para que a unidade não tente cortar diagonalmente pela água.
     if (currentSide === 0) {
-      if (this.isInsideBridge(this.x)) {
-        if (targetSide < 0) return { x: bridgeX, y: river.top - bankGap };
-        if (targetSide > 0) return { x: bridgeX, y: river.bottom + bankGap };
-        return target;
+      if (!this.isInsideLaneBridge(this.x)) {
+        return { x: bridgeX, y: this.y };
       }
 
-      // Recuperação defensiva: uma unidade nunca deveria chegar na água,
-      // mas se acontecer por arredondamento ela retorna ao centro da ponte.
-      return { x: bridgeX, y: this.y };
+      if (targetSide < 0) return { x: bridgeX, y: river.top - bankGap };
+      if (targetSide > 0) return { x: bridgeX, y: river.bottom + bankGap };
+      return target;
     }
 
-    // Alvo do outro lado (ou em cima da ponte): primeiro alcança a abertura
-    // da ponte no próprio barranco; depois segue normalmente sobre ela.
+    // De baixo para cima. Primeiro alinha horizontalmente com a ponte.
+    // Depois de alcançar o barranco, continua sempre em frente — sem oscilar.
     if (currentSide > 0 && targetSide <= 0) {
-      const entry = { x: bridgeX, y: river.bottom + bankGap };
-      if (distance(this, entry) > 2) return entry;
-      return targetSide === 0 ? target : { x: bridgeX, y: river.top - bankGap };
+      if (!this.isInsideLaneBridge(this.x)) {
+        return { x: bridgeX, y: Math.max(this.y, river.bottom + bankGap) };
+      }
+
+      if (this.y > river.bottom + bankGap) {
+        return { x: bridgeX, y: river.bottom + bankGap };
+      }
+
+      return targetSide === 0
+        ? target
+        : { x: bridgeX, y: river.top - bankGap };
     }
 
+    // De cima para baixo, regra espelhada.
     if (currentSide < 0 && targetSide >= 0) {
-      const entry = { x: bridgeX, y: river.top - bankGap };
-      if (distance(this, entry) > 2) return entry;
-      return targetSide === 0 ? target : { x: bridgeX, y: river.bottom + bankGap };
+      if (!this.isInsideLaneBridge(this.x)) {
+        return { x: bridgeX, y: Math.min(this.y, river.top - bankGap) };
+      }
+
+      if (this.y < river.top - bankGap) {
+        return { x: bridgeX, y: river.top - bankGap };
+      }
+
+      return targetSide === 0
+        ? target
+        : { x: bridgeX, y: river.bottom + bankGap };
     }
 
     return target;
@@ -124,8 +144,7 @@ export class Unit {
     const target = enemyUnit ?? this.getEnemyStructure(structures);
     if (!target) return;
 
-    // Combate sempre tem prioridade. Isso permite lutar na ponte, na entrada
-    // dela ou entre uma unidade sobre a ponte e outra no barranco.
+    // A ponte é chão comum: combate pode acontecer nela ou nas bordas.
     const reach = this.attackRange + (target.hitRadius ?? target.radius ?? 0);
     const d = distance(this, target);
 
