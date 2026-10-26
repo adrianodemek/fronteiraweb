@@ -1,4 +1,4 @@
-import { distance } from '../utils/math.js?v=0.2.0';
+import { distance } from '../utils/math.js?v=0.4.0';
 
 export class DeploymentSystem {
   constructor(config) {
@@ -27,9 +27,12 @@ export class DeploymentSystem {
   }
 
   isInsideMap(x, y) {
-    const { width, height, deployment } = this.config;
+    const { width, battlefield, deployment } = this.config;
     const margin = deployment.edgeMargin;
-    return x >= margin && x <= width - margin && y >= margin && y <= height - margin;
+    return x >= margin
+      && x <= width - margin
+      && y >= battlefield.top + margin
+      && y <= battlefield.bottom - margin;
   }
 
   isInsideRiver(y) {
@@ -43,13 +46,13 @@ export class DeploymentSystem {
 
     return structures.some((structure) => {
       if (!structure.alive) return false;
-      const radius = structure.hitRadius ?? (structure.kind === 'hq' ? 20 : 16);
+      const radius = structure.hitRadius ?? (structure.kind === 'hq' ? 28 : 22);
       return distance(point, structure) < radius + structureBuffer;
     });
   }
 
   getHomeRect(team) {
-    const { width, height, river, deployMargin, deployment } = this.config;
+    const { width, battlefield, river, deployMargin, deployment } = this.config;
 
     if (team === 'player') {
       const y = river.bottom + deployMargin;
@@ -60,11 +63,11 @@ export class DeploymentSystem {
         x: 0,
         y,
         width,
-        height: height - deployment.bottomUiMargin - y,
+        height: battlefield.bottom - deployment.edgeMargin - y,
       };
     }
 
-    const y = deployment.edgeMargin;
+    const y = battlefield.top + deployment.edgeMargin;
     return {
       lane: null,
       advanced: false,
