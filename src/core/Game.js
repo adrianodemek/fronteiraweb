@@ -1,7 +1,8 @@
 import { GAME_CONFIG } from '../config.js';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.1.5';
+import { Unit } from '../entities/Unit.js?v=0.1.6';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.6';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -11,6 +12,7 @@ export class Game {
     this.ctx.imageSmoothingEnabled = false;
     this.config = GAME_CONFIG;
     this.battlefield = new Battlefield(this.config);
+    this.deployment = new DeploymentSystem(this.config);
     this.lastTime = 0;
     this.elapsed = 0;
     this.enemySpawnClock = 1.8;
@@ -129,18 +131,38 @@ export class Game {
     const x = ((event.clientX - rect.left) / rect.width) * this.config.width;
     const y = ((event.clientY - rect.top) / rect.height) * this.config.height;
 
-    const minY = this.config.river.bottom + this.config.deployMargin;
-    if (y < minY || y > this.config.height - 42) return;
+    if (!this.deployment.isDeployAllowed('player', x, y, this.structures)) return;
 
     const lane = Math.abs(x - this.config.bridges[0]) <= Math.abs(x - this.config.bridges[1]) ? 0 : 1;
-    const spawnX = clamp(x, 18, this.config.width - 18);
-    const spawnY = clamp(y, minY, this.config.height - 62);
+    const { edgeMargin, bottomUiMargin } = this.config.deployment;
+    const spawnX = clamp(x, edgeMargin, this.config.width - edgeMargin);
+    const spawnY = clamp(y, edgeMargin, this.config.height - bottomUiMargin);
     this.spawnUnit('player', lane, spawnX, spawnY);
+  }
+
+  drawDeploymentZones() {
+    const { ctx } = this;
+    const rects = this.deployment.getDeployRects('player', this.structures);
+
+    for (const rect of rects) {
+      ctx.fillStyle = rect.advanced
+        ? 'rgba(236, 227, 189, 0.11)'
+        : 'rgba(236, 227, 189, 0.06)';
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+      if (rect.advanced) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(239, 227, 189, 0.34)';
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+        ctx.restore();
+      }
+    }
   }
 
   draw() {
     const { ctx } = this;
-    const { width, height, palette, river } = this.config;
+    const { width, height, palette } = this.config;
 
     ctx.clearRect(0, 0, width, height);
     this.battlefield.draw(ctx, this.elapsed);
@@ -155,8 +177,7 @@ export class Game {
     }
 
     if (this.state === 'playing') {
-      ctx.fillStyle = 'rgba(236, 227, 189, 0.06)';
-      ctx.fillRect(0, river.bottom + this.config.deployMargin, width, height - river.bottom - this.config.deployMargin);
+      this.drawDeploymentZones();
     }
 
     this.drawHud();
