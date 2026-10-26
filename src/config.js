@@ -1,5 +1,5 @@
 export const GAME_CONFIG = Object.freeze({
-  version: '0.2.0',
+  version: '0.2.1',
   width: 360,
   height: 640,
   arenaGrid: {
@@ -26,12 +26,12 @@ export const GAME_CONFIG = Object.freeze({
     ENEMY: 'enemy',
   },
   structures: [
-    { id: 'enemy-hq', team: 'enemy', kind: 'hq', x: 180, y: 70, hp: 2200, range: 92, damage: 26, attackDelay: 0.9 },
-    { id: 'enemy-left', team: 'enemy', kind: 'base', lane: 0, x: 88, y: 154, hp: 1200, range: 82, damage: 20, attackDelay: 0.95 },
-    { id: 'enemy-right', team: 'enemy', kind: 'base', lane: 1, x: 272, y: 154, hp: 1200, range: 82, damage: 20, attackDelay: 0.95 },
-    { id: 'player-left', team: 'player', kind: 'base', lane: 0, x: 88, y: 486, hp: 1200, range: 82, damage: 20, attackDelay: 0.95 },
-    { id: 'player-right', team: 'player', kind: 'base', lane: 1, x: 272, y: 486, hp: 1200, range: 82, damage: 20, attackDelay: 0.95 },
-    { id: 'player-hq', team: 'player', kind: 'hq', x: 180, y: 570, hp: 2200, range: 92, damage: 26, attackDelay: 0.9 },
+    { id: 'enemy-hq', team: 'enemy', kind: 'hq', x: 180, y: 70, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
+    { id: 'enemy-left', team: 'enemy', kind: 'base', lane: 0, x: 88, y: 154, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
+    { id: 'enemy-right', team: 'enemy', kind: 'base', lane: 1, x: 272, y: 154, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
+    { id: 'player-left', team: 'player', kind: 'base', lane: 0, x: 88, y: 486, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
+    { id: 'player-right', team: 'player', kind: 'base', lane: 1, x: 272, y: 486, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
+    { id: 'player-hq', team: 'player', kind: 'hq', x: 180, y: 570, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
   ],
   infantry: {
     hp: 120,
