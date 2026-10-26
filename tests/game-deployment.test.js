@@ -48,6 +48,7 @@ function makeCanvas() {
 
   const enemyRight = game.structures.find((item) => item.id === 'enemy-right');
   enemyRight.hp = 0;
+  game.supplies.add('player', 10);
 
   assert.equal(
     game.tryDeployUnit('player', 280, 220),
