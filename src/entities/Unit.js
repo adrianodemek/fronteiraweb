@@ -1,4 +1,4 @@
-import { distance, moveToward } from '../utils/math.js?v=0.1.3';
+import { distance, moveToward } from '../utils/math.js?v=0.1.4';
 
 export class Unit {
   constructor({ team, x, y, lane, stats, config }) {
@@ -17,8 +17,6 @@ export class Unit {
     this.radius = stats.radius;
     this.cooldown = 0;
     this.flash = 0;
-    this.crossingRiver = false;
-    this.crossedRiver = this.hasReachedEnemySide();
   }
 
   get alive() {
@@ -28,23 +26,6 @@ export class Unit {
   takeDamage(amount) {
     this.hp = Math.max(0, this.hp - amount);
     this.flash = 0.08;
-  }
-
-  hasReachedEnemySide() {
-    const { river } = this.config;
-    const margin = 12;
-
-    return this.team === 'player'
-      ? this.y <= river.top - margin
-      : this.y >= river.bottom + margin;
-  }
-
-  targetIsOnHomeSide(target) {
-    const { river } = this.config;
-
-    return this.team === 'player'
-      ? target.y > river.bottom
-      : target.y < river.top;
   }
 
   getEnemyUnit(units) {
@@ -76,46 +57,61 @@ export class Unit {
     return enemies.sort((a, b) => distance(this, a) - distance(this, b))[0];
   }
 
-  getBridgeRoute(target) {
-    const { river, bridges } = this.config;
-    const bridgeX = bridges[this.lane];
-    const approachGap = 6;
-    const exitGap = 12;
+  getRiverSide(y) {
+    const { river } = this.config;
+    if (y < river.top) return -1;
+    if (y > river.bottom) return 1;
+    return 0;
+  }
 
-    if (this.crossedRiver) return null;
+  getBridgeX() {
+    return this.config.bridges[this.lane] ?? this.config.bridges[0];
+  }
 
-    if (this.hasReachedEnemySide()) {
-      this.crossedRiver = true;
-      this.crossingRiver = false;
-      return null;
-    }
+  isInsideBridge(x) {
+    const halfWalkable = this.config.bridgeWidth / 2 - this.radius - 2;
+    return this.config.bridges.some((bridgeX) => Math.abs(x - bridgeX) <= halfWalkable);
+  }
 
-    // Enquanto ainda está no próprio território, a unidade pode defender
-    // contra um inimigo que já tenha atravessado. Fora desse caso, ela deve
-    // obrigatoriamente usar a ponte da lane.
-    if (!this.crossingRiver && this.targetIsOnHomeSide(target)) {
-      return null;
-    }
+  getNavigationPoint(target) {
+    const { river } = this.config;
+    const bridgeX = this.getBridgeX();
+    const currentSide = this.getRiverSide(this.y);
+    const targetSide = this.getRiverSide(target.y);
+    const bankGap = 7;
 
-    const entry = this.team === 'player'
-      ? { x: bridgeX, y: river.bottom + approachGap }
-      : { x: bridgeX, y: river.top - approachGap };
+    // Mesmo lado do rio: caminho normal.
+    if (currentSide !== 0 && currentSide === targetSide) return target;
 
-    // A saída fica de fato dentro do campo adversário, e não apenas na borda
-    // visual da ponte. A unidade só volta a procurar combate depois de chegar aqui.
-    const exit = this.team === 'player'
-      ? { x: bridgeX, y: river.top - exitGap }
-      : { x: bridgeX, y: river.bottom + exitGap };
-
-    if (!this.crossingRiver) {
-      if (distance(this, entry) <= 2) {
-        this.crossingRiver = true;
-        return exit;
+    // Dentro da faixa do rio só existe terreno caminhável onde há ponte.
+    // A ponte é chão normal: não bloqueia combate nem cria estado especial.
+    if (currentSide === 0) {
+      if (this.isInsideBridge(this.x)) {
+        if (targetSide < 0) return { x: bridgeX, y: river.top - bankGap };
+        if (targetSide > 0) return { x: bridgeX, y: river.bottom + bankGap };
+        return target;
       }
-      return entry;
+
+      // Recuperação defensiva: uma unidade nunca deveria chegar na água,
+      // mas se acontecer por arredondamento ela retorna ao centro da ponte.
+      return { x: bridgeX, y: this.y };
     }
 
-    return exit;
+    // Alvo do outro lado (ou em cima da ponte): primeiro alcança a abertura
+    // da ponte no próprio barranco; depois segue normalmente sobre ela.
+    if (currentSide > 0 && targetSide <= 0) {
+      const entry = { x: bridgeX, y: river.bottom + bankGap };
+      if (distance(this, entry) > 2) return entry;
+      return targetSide === 0 ? target : { x: bridgeX, y: river.top - bankGap };
+    }
+
+    if (currentSide < 0 && targetSide >= 0) {
+      const entry = { x: bridgeX, y: river.top - bankGap };
+      if (distance(this, entry) > 2) return entry;
+      return targetSide === 0 ? target : { x: bridgeX, y: river.bottom + bankGap };
+    }
+
+    return target;
   }
 
   update(dt, units, structures) {
@@ -128,14 +124,8 @@ export class Unit {
     const target = enemyUnit ?? this.getEnemyStructure(structures);
     if (!target) return;
 
-    // Navegação pela ponte tem prioridade absoluta sobre combate. Isso evita
-    // a tropa parar na borda do rio ao detectar um inimigo dentro do alcance.
-    const bridgeRoute = this.getBridgeRoute(target);
-    if (bridgeRoute) {
-      moveToward(this, bridgeRoute, this.speed * dt);
-      return;
-    }
-
+    // Combate sempre tem prioridade. Isso permite lutar na ponte, na entrada
+    // dela ou entre uma unidade sobre a ponte e outra no barranco.
     const reach = this.attackRange + (target.hitRadius ?? target.radius ?? 0);
     const d = distance(this, target);
 
@@ -148,7 +138,8 @@ export class Unit {
       return;
     }
 
-    moveToward(this, target, this.speed * dt);
+    const point = this.getNavigationPoint(target);
+    moveToward(this, point, this.speed * dt);
   }
 
   draw(ctx, palette) {
