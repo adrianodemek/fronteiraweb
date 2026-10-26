@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/navigation.test.js && node tests/deployment.test.js && node tests/game-deployment.test.js && node tests/hq-activation.test.js"
+    "test": "node tests/navigation.test.js && node tests/deployment.test.js && node tests/game-deployment.test.js && node tests/hq-activation.test.js && node tests/supply.test.js"
   }
 }
