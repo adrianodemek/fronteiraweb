@@ -9,6 +9,12 @@ export const GAME_CONFIG = Object.freeze({
   bridges: [88, 272],
   bridgeWidth: 44,
   deployMargin: 18,
+  deployment: {
+    advanceInset: 96,
+    edgeMargin: 18,
+    bottomUiMargin: 42,
+    structureBuffer: 12,
+  },
   teams: {
     PLAYER: 'player',
     ENEMY: 'enemy',
