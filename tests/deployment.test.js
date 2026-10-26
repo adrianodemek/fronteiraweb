@@ -7,6 +7,16 @@ const makeStructures = () => GAME_CONFIG.structures.map((data) => new Structure(
 const deployment = new DeploymentSystem(GAME_CONFIG);
 
 {
+  const pocket = deployment.getPocketRect('player', 0);
+  assert.equal(GAME_CONFIG.arenaGrid.columns, 18, 'A arena deve manter 18 tiles de largura.');
+  assert.equal(GAME_CONFIG.arenaGrid.rows, 32, 'A arena deve manter 32 tiles de altura.');
+  assert.equal(GAME_CONFIG.arenaGrid.tileSize, 20, 'Na resolução atual, cada tile deve medir 20 px.');
+  assert.equal(pocket.width, 180, 'Cada pocket deve ocupar exatamente 9 tiles de largura.');
+  assert.equal(pocket.height, 60, 'Cada pocket deve ocupar exatamente 3 tiles de profundidade.');
+  assert.equal(pocket.y, GAME_CONFIG.river.top - 60, 'O pocket deve começar 3 tiles além do rio.');
+}
+
+{
   const structures = makeStructures();
 
   assert.equal(
@@ -33,7 +43,7 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   assert.equal(
     deployment.isDeployAllowed('player', 80, 220, structures),
     false,
-    'Destruir a base não deve liberar toda a metade inimiga, apenas o pocket.',
+    'Destruir a base não deve liberar além dos 3 tiles do pocket.',
   );
 
   assert.equal(
@@ -72,7 +82,7 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   assert.equal(
     deployment.isDeployAllowed('enemy', 80, 430, structures),
     false,
-    'O inimigo também não deve liberar além da profundidade do pocket.',
+    'O inimigo também não deve liberar além da profundidade de 3 tiles.',
   );
 }
 
