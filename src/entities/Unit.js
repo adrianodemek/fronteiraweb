@@ -60,15 +60,29 @@ export class Unit {
   getNavigationPoint(target) {
     const { river, bridges } = this.config;
     const bridgeX = bridges[this.lane];
+    const crossingMargin = 8;
 
     if (this.team === 'player' && target.y < river.top) {
-      if (this.y > river.bottom + 2) return { x: bridgeX, y: river.bottom + 2 };
-      if (this.y >= river.top - 2) return { x: bridgeX, y: river.top - 2 };
+      // Primeiro alinha na entrada da ponte. Ao tocar a borda do rio,
+      // continua até alguns pixels além da saída para não ficar preso
+      // exatamente na coordenada-limite da travessia.
+      if (this.y > river.bottom) {
+        return { x: bridgeX, y: river.bottom };
+      }
+
+      if (this.y >= river.top) {
+        return { x: bridgeX, y: river.top - crossingMargin };
+      }
     }
 
     if (this.team === 'enemy' && target.y > river.bottom) {
-      if (this.y < river.top - 2) return { x: bridgeX, y: river.top - 2 };
-      if (this.y <= river.bottom + 2) return { x: bridgeX, y: river.bottom + 2 };
+      if (this.y < river.top) {
+        return { x: bridgeX, y: river.top };
+      }
+
+      if (this.y <= river.bottom) {
+        return { x: bridgeX, y: river.bottom + crossingMargin };
+      }
     }
 
     return target;
