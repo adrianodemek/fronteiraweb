@@ -1,8 +1,8 @@
-import { GAME_CONFIG } from '../config.js?v=0.2.0';
+import { GAME_CONFIG } from '../config.js?v=0.2.1';
 import { Battlefield } from '../world/Battlefield.js';
-import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.2.0';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.2.0';
+import { Structure } from '../entities/Structure.js?v=0.2.1';
+import { Unit } from '../entities/Unit.js?v=0.2.1';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.2.1';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -61,6 +61,8 @@ export class Game {
       this.enemySpawnClock = 4.1;
     }
 
+    this.syncHqActivation();
+
     for (const structure of this.structures) {
       structure.update(dt, this.units);
     }
@@ -69,8 +71,22 @@ export class Game {
       unit.update(dt, this.units, this.structures);
     }
 
+    this.syncHqActivation();
     this.units = this.units.filter((unit) => unit.alive);
     this.checkBattleEnd();
+  }
+
+  syncHqActivation() {
+    for (const team of Object.values(this.config.teams)) {
+      const hq = this.structures.find((item) => item.team === team && item.kind === 'hq');
+      if (!hq || !hq.alive || hq.active) continue;
+
+      const lostBase = this.structures.some((item) => (
+        item.team === team && item.kind === 'base' && !item.alive
+      ));
+
+      if (lostBase) hq.activate();
+    }
   }
 
   checkBattleEnd() {
