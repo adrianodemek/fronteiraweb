@@ -12,7 +12,7 @@ function makeStructure(team, lane, x, y) {
     y,
     kind: 'base',
     hp: 99999,
-    hitRadius: 16,
+    hitRadius: 22,
     get alive() {
       return this.hp > 0;
     },
@@ -34,7 +34,7 @@ function simulate(unit, units, structures, seconds, onStep) {
   const player = new Unit({
     team: 'player', lane: 0, x: 150, y: 450, stats, config: GAME_CONFIG,
   });
-  const target = makeStructure('enemy', 0, 88, 154);
+  const target = makeStructure('enemy', 0, GAME_CONFIG.bridges[0], 186);
   let enteredWater = false;
 
   simulate(player, [player], [target], 9, (unit) => {
@@ -50,7 +50,7 @@ function simulate(unit, units, structures, seconds, onStep) {
   const enemy = new Unit({
     team: 'enemy', lane: 1, x: 240, y: 218, stats, config: GAME_CONFIG,
   });
-  const target = makeStructure('player', 1, 272, 486);
+  const target = makeStructure('player', 1, GAME_CONFIG.bridges[1], 492);
   let enteredWater = false;
 
   simulate(enemy, [enemy], [target], 9, (unit) => {
@@ -63,18 +63,19 @@ function simulate(unit, units, structures, seconds, onStep) {
 }
 
 {
-  // A ponte é terreno normal: a unidade pode parar para combater em cima dela
-  // e, quando o alvo morrer, deve continuar avançando pelo mesmo caminho.
+  // A ponte é terreno normal: a unidade pode combater sobre ela e depois continuar.
+  const bridgeX = GAME_CONFIG.bridges[0];
+  const riverMiddle = (GAME_CONFIG.river.top + GAME_CONFIG.river.bottom) / 2;
   const player = new Unit({
-    team: 'player', lane: 0, x: 88, y: 360, stats, config: GAME_CONFIG,
+    team: 'player', lane: 0, x: bridgeX, y: GAME_CONFIG.river.bottom + 18, stats, config: GAME_CONFIG,
   });
   const enemyOnBridge = new Unit({
-    team: 'enemy', lane: 0, x: 88, y: 318, stats, config: GAME_CONFIG,
+    team: 'enemy', lane: 0, x: bridgeX, y: riverMiddle, stats, config: GAME_CONFIG,
   });
   enemyOnBridge.hp = stats.damage;
   enemyOnBridge.maxHp = stats.damage;
 
-  const target = makeStructure('enemy', 0, 88, 154);
+  const target = makeStructure('enemy', 0, bridgeX, 186);
   let foughtOnBridge = false;
 
   simulate(player, [player, enemyOnBridge], [target], 5, (unit) => {
