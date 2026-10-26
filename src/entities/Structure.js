@@ -7,13 +7,20 @@ export class Structure {
     this.cooldown = Math.random() * 0.25;
     this.flash = 0;
     this.hitRadius = data.kind === 'hq' ? 20 : 16;
+    this.active = data.startsActive ?? data.kind !== 'hq';
   }
 
   get alive() {
     return this.hp > 0;
   }
 
+  activate() {
+    if (this.alive) this.active = true;
+  }
+
   takeDamage(amount) {
+    if (amount <= 0 || !this.alive) return;
+    if (this.kind === 'hq') this.activate();
     this.hp = Math.max(0, this.hp - amount);
     this.flash = 0.08;
   }
@@ -22,6 +29,7 @@ export class Structure {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.flash = Math.max(0, this.flash - dt);
     if (!this.alive || this.cooldown > 0) return;
+    if (this.kind === 'hq' && !this.active) return;
 
     let target = null;
     let bestDistance = Infinity;
@@ -78,7 +86,7 @@ export class Structure {
     if (this.kind === 'hq') {
       ctx.fillStyle = palette.outline;
       ctx.fillRect(Math.round(this.x - 2), y - 9, 3, 10);
-      ctx.fillStyle = body;
+      ctx.fillStyle = this.active ? body : '#454d43';
       ctx.fillRect(Math.round(this.x + 1), y - 9, 10, 6);
     }
 
