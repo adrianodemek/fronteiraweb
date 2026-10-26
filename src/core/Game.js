@@ -1,8 +1,8 @@
-import { GAME_CONFIG } from '../config.js?v=0.1.7';
+import { GAME_CONFIG } from '../config.js?v=0.1.8';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.1.7';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.7';
+import { Unit } from '../entities/Unit.js?v=0.1.8';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.1.8';
 import { clamp } from '../utils/math.js';
 
 export class Game {
@@ -148,29 +148,32 @@ export class Game {
   }
 
   drawDeploymentZones() {
-    const { ctx } = this;
+    const { ctx, config } = this;
     const rects = this.deployment.getDeployRects('player', this.structures);
 
     for (const rect of rects) {
-      if (rect.advanced) {
-        ctx.fillStyle = 'rgba(215, 230, 174, 0.20)';
+      if (!rect.advanced) {
+        ctx.fillStyle = 'rgba(236, 227, 189, 0.05)';
         ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-
-        ctx.save();
-        ctx.strokeStyle = 'rgba(247, 239, 195, 0.82)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 4]);
-        ctx.strokeRect(
-          Math.round(rect.x + 2),
-          Math.round(rect.y + 2),
-          Math.round(rect.width - 4),
-          Math.round(rect.height - 4),
-        );
-        ctx.restore();
-      } else {
-        ctx.fillStyle = 'rgba(236, 227, 189, 0.06)';
-        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+        continue;
       }
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(142, 166, 108, 0.34)';
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+      ctx.strokeStyle = 'rgba(239, 227, 189, 0.95)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4);
+
+      ctx.setLineDash([]);
+      ctx.fillStyle = config.palette.ui;
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ÁREA LIBERADA', rect.x + rect.width / 2, rect.y + 11);
+      ctx.restore();
     }
   }
 
@@ -199,7 +202,7 @@ export class Game {
 
   drawHud() {
     const { ctx } = this;
-    const { width, palette } = this.config;
+    const { width, palette, version } = this.config;
     const totalSeconds = Math.ceil(this.remaining);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = String(totalSeconds % 60).padStart(2, '0');
@@ -221,7 +224,12 @@ export class Game {
     ctx.fillText('INIMIGO', width / 2, 43);
     ctx.fillText('SEU CAMPO', width / 2, 619);
 
+    ctx.textAlign = 'right';
+    ctx.font = '7px monospace';
+    ctx.fillText(`V${version}`, width - 6, 10);
+
     if (this.state === 'finished') {
+      ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(11, 14, 12, 0.82)';
       ctx.fillRect(35, 270, width - 70, 100);
       ctx.strokeStyle = palette.ui;
