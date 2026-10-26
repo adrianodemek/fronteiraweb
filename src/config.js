@@ -1,5 +1,5 @@
 export const GAME_CONFIG = Object.freeze({
-  version: '0.2.1',
+  version: '0.3.0',
   width: 360,
   height: 640,
   arenaGrid: {
@@ -20,6 +20,15 @@ export const GAME_CONFIG = Object.freeze({
     edgeMargin: 18,
     bottomUiMargin: 42,
     structureBuffer: 12,
+  },
+  supplies: {
+    max: 10,
+    starting: 5,
+    regenPerSecond: 1 / 2.8,
+    doubleAtRemaining: 60,
+  },
+  costs: {
+    infantry: 3,
   },
   teams: {
     PLAYER: 'player',
