@@ -12,21 +12,21 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   assert.equal(GAME_CONFIG.arenaGrid.rows, 32, 'A arena deve manter 32 tiles de altura.');
   assert.equal(GAME_CONFIG.arenaGrid.tileSize, 20, 'Na resolução atual, cada tile deve medir 20 px.');
   assert.equal(pocket.width, 180, 'Cada pocket deve ocupar exatamente 9 tiles de largura.');
-  assert.equal(pocket.height, 60, 'Cada pocket deve ocupar exatamente 3 tiles de profundidade.');
-  assert.equal(pocket.y, GAME_CONFIG.river.top - 60, 'O pocket deve começar 3 tiles além do rio.');
+  assert.equal(pocket.height, 80, 'Cada pocket deve ocupar exatamente 4 tiles de profundidade.');
+  assert.equal(pocket.y, GAME_CONFIG.river.top - 80, 'O pocket deve começar 4 tiles além do rio.');
 }
 
 {
   const structures = makeStructures();
 
   assert.equal(
-    deployment.isDeployAllowed('player', 150, 410, structures),
+    deployment.isDeployAllowed('player', 150, GAME_CONFIG.river.bottom + 1, structures),
     true,
-    'O jogador deve poder mobilizar no próprio território.',
+    'O território normal deve encostar no barranco do rio, como no Clash Royale.',
   );
 
   assert.equal(
-    deployment.isDeployAllowed('player', 80, 260, structures),
+    deployment.isDeployAllowed('player', 80, 220, structures),
     false,
     'O pocket inimigo deve estar bloqueado no início.',
   );
@@ -35,19 +35,19 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   enemyLeft.hp = 0;
 
   assert.equal(
-    deployment.isDeployAllowed('player', 80, 260, structures),
-    true,
-    'Destruir a base esquerda deve liberar o pocket esquerdo junto ao rio.',
-  );
-
-  assert.equal(
     deployment.isDeployAllowed('player', 80, 220, structures),
-    false,
-    'Destruir a base não deve liberar além dos 3 tiles do pocket.',
+    true,
+    'Destruir a base esquerda deve liberar quatro tiles no pocket esquerdo.',
   );
 
   assert.equal(
-    deployment.isDeployAllowed('player', 280, 260, structures),
+    deployment.isDeployAllowed('player', 80, 200, structures),
+    false,
+    'Destruir a base não deve liberar além dos 4 tiles do pocket.',
+  );
+
+  assert.equal(
+    deployment.isDeployAllowed('player', 280, 220, structures),
     false,
     'O pocket direito deve continuar bloqueado enquanto a base direita estiver viva.',
   );
@@ -62,9 +62,9 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   enemyRight.hp = 0;
 
   assert.equal(
-    deployment.isDeployAllowed('player', 280, 260, structures),
+    deployment.isDeployAllowed('player', 280, 220, structures),
     true,
-    'Destruir a base direita deve liberar o pocket direito.',
+    'Destruir a base direita deve liberar quatro tiles no pocket direito.',
   );
 }
 
@@ -74,7 +74,7 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   playerLeft.hp = 0;
 
   assert.equal(
-    deployment.isDeployAllowed('enemy', 80, 380, structures),
+    deployment.isDeployAllowed('enemy', 80, 420, structures),
     true,
     'A regra de pocket deve funcionar simetricamente para o inimigo.',
   );
@@ -82,7 +82,7 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   assert.equal(
     deployment.isDeployAllowed('enemy', 80, 430, structures),
     false,
-    'O inimigo também não deve liberar além da profundidade de 3 tiles.',
+    'O inimigo também não deve liberar além da profundidade de 4 tiles.',
   );
 }
 
