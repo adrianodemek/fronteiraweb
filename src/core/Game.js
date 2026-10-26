@@ -1,11 +1,11 @@
-import { GAME_CONFIG } from '../config.js?v=0.4.0';
-import { Battlefield } from '../world/Battlefield.js?v=0.4.0';
-import { Structure } from '../entities/Structure.js?v=0.4.0';
-import { Unit } from '../entities/Unit.js?v=0.2.1';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.4.0';
-import { SupplySystem } from '../systems/Supply.js?v=0.3.0';
-import { CardSystem } from '../systems/Cards.js?v=0.4.0';
-import { clamp } from '../utils/math.js';
+import { GAME_CONFIG } from '../config.js?v=0.5.1';
+import { Battlefield } from '../world/Battlefield.js?v=0.5.1';
+import { Structure } from '../entities/Structure.js?v=0.5.1';
+import { Unit } from '../entities/Unit.js?v=0.5.1';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.5.1';
+import { SupplySystem } from '../systems/Supply.js?v=0.5.1';
+import { CardSystem } from '../systems/Cards.js?v=0.5.1';
+import { clamp } from '../utils/math.js?v=0.5.1';
 
 export class Game {
   constructor(canvas) {
