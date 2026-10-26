@@ -1,4 +1,4 @@
-import { distance } from '../utils/math.js?v=0.1.9';
+import { distance } from '../utils/math.js?v=0.2.0';
 
 export class DeploymentSystem {
   constructor(config) {
