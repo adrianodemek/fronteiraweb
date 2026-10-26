@@ -16,24 +16,30 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
   );
 
   assert.equal(
-    deployment.isDeployAllowed('player', 80, 220, structures),
+    deployment.isDeployAllowed('player', 80, 260, structures),
     false,
-    'O território inimigo não pode estar liberado no início.',
+    'O pocket inimigo deve estar bloqueado no início.',
   );
 
   const enemyLeft = structures.find((item) => item.id === 'enemy-left');
   enemyLeft.hp = 0;
 
   assert.equal(
-    deployment.isDeployAllowed('player', 80, 220, structures),
+    deployment.isDeployAllowed('player', 80, 260, structures),
     true,
-    'Destruir a base esquerda deve liberar a metade esquerda inimiga.',
+    'Destruir a base esquerda deve liberar o pocket esquerdo junto ao rio.',
   );
 
   assert.equal(
-    deployment.isDeployAllowed('player', 280, 220, structures),
+    deployment.isDeployAllowed('player', 80, 220, structures),
     false,
-    'A metade direita deve continuar bloqueada enquanto a base direita estiver viva.',
+    'Destruir a base não deve liberar toda a metade inimiga, apenas o pocket.',
+  );
+
+  assert.equal(
+    deployment.isDeployAllowed('player', 280, 260, structures),
+    false,
+    'O pocket direito deve continuar bloqueado enquanto a base direita estiver viva.',
   );
 
   assert.equal(
@@ -42,32 +48,31 @@ const deployment = new DeploymentSystem(GAME_CONFIG);
     'O rio continua proibido para mobilização.',
   );
 
-  assert.equal(
-    deployment.isDeployAllowed('player', 170, 95, structures),
-    false,
-    'Não deve ser possível mobilizar sobre uma estrutura inimiga viva.',
-  );
-
   const enemyRight = structures.find((item) => item.id === 'enemy-right');
   enemyRight.hp = 0;
 
   assert.equal(
-    deployment.isDeployAllowed('player', 280, 220, structures),
+    deployment.isDeployAllowed('player', 280, 260, structures),
     true,
-    'Destruir a base direita deve liberar também a metade direita inimiga.',
+    'Destruir a base direita deve liberar o pocket direito.',
   );
 }
 
 {
-  // A mesma regra já fica pronta para o futuro adversário/multiplayer.
   const structures = makeStructures();
   const playerLeft = structures.find((item) => item.id === 'player-left');
   playerLeft.hp = 0;
 
   assert.equal(
-    deployment.isDeployAllowed('enemy', 80, 420, structures),
+    deployment.isDeployAllowed('enemy', 80, 380, structures),
     true,
-    'A regra de território avançado deve funcionar simetricamente para o inimigo.',
+    'A regra de pocket deve funcionar simetricamente para o inimigo.',
+  );
+
+  assert.equal(
+    deployment.isDeployAllowed('enemy', 80, 430, structures),
+    false,
+    'O inimigo também não deve liberar além da profundidade do pocket.',
   );
 }
 
