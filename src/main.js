@@ -1,4 +1,4 @@
-import { Game } from './core/Game.js?v=0.1.9';
+import { Game } from './core/Game.js?v=0.2.0';
 
 const canvas = document.querySelector('#game');
 
