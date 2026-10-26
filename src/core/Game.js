@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../config.js';
 import { Battlefield } from '../world/Battlefield.js';
 import { Structure } from '../entities/Structure.js';
-import { Unit } from '../entities/Unit.js?v=0.1.2';
+import { Unit } from '../entities/Unit.js?v=0.1.3';
 import { clamp } from '../utils/math.js';
 
 export class Game {
