@@ -1,4 +1,4 @@
-import { distance, moveToward } from '../utils/math.js';
+import { distance, moveToward } from '../utils/math.js?v=0.1.2';
 
 export class Unit {
   constructor({ team, x, y, lane, stats, config }) {
@@ -17,6 +17,8 @@ export class Unit {
     this.radius = stats.radius;
     this.cooldown = 0;
     this.flash = 0;
+    this.crossingRiver = false;
+    this.crossedRiver = this.hasReachedEnemySide();
   }
 
   get alive() {
@@ -26,6 +28,23 @@ export class Unit {
   takeDamage(amount) {
     this.hp = Math.max(0, this.hp - amount);
     this.flash = 0.08;
+  }
+
+  hasReachedEnemySide() {
+    const { river } = this.config;
+    const margin = 10;
+
+    return this.team === 'player'
+      ? this.y <= river.top - margin
+      : this.y >= river.bottom + margin;
+  }
+
+  targetIsOnHomeSide(target) {
+    const { river } = this.config;
+
+    return this.team === 'player'
+      ? target.y > river.bottom
+      : target.y < river.top;
   }
 
   getEnemyUnit(units) {
@@ -60,32 +79,43 @@ export class Unit {
   getNavigationPoint(target) {
     const { river, bridges } = this.config;
     const bridgeX = bridges[this.lane];
-    const crossingMargin = 8;
+    const approachGap = 4;
+    const exitGap = 10;
 
-    if (this.team === 'player' && target.y < river.top) {
-      // Primeiro alinha na entrada da ponte. Ao tocar a borda do rio,
-      // continua até alguns pixels além da saída para não ficar preso
-      // exatamente na coordenada-limite da travessia.
-      if (this.y > river.bottom) {
-        return { x: bridgeX, y: river.bottom };
-      }
+    if (this.crossedRiver) return target;
 
-      if (this.y >= river.top) {
-        return { x: bridgeX, y: river.top - crossingMargin };
-      }
+    if (this.hasReachedEnemySide()) {
+      this.crossedRiver = true;
+      this.crossingRiver = false;
+      return target;
     }
 
-    if (this.team === 'enemy' && target.y > river.bottom) {
-      if (this.y < river.top) {
-        return { x: bridgeX, y: river.top };
-      }
-
-      if (this.y <= river.bottom) {
-        return { x: bridgeX, y: river.bottom + crossingMargin };
-      }
+    // Enquanto ainda está no próprio território, a unidade pode defender
+    // contra um inimigo que já tenha atravessado. Caso contrário, segue
+    // obrigatoriamente pela ponte da sua lane.
+    if (!this.crossingRiver && this.targetIsOnHomeSide(target)) {
+      return target;
     }
 
-    return target;
+    const entry = this.team === 'player'
+      ? { x: bridgeX, y: river.bottom + approachGap }
+      : { x: bridgeX, y: river.top - approachGap };
+
+    const exit = this.team === 'player'
+      ? { x: bridgeX, y: river.top - exitGap }
+      : { x: bridgeX, y: river.bottom + exitGap };
+
+    // Ao alcançar a entrada, a travessia vira um estado bloqueado.
+    // Trocas de alvo no meio do rio não podem mais tirar a unidade da ponte.
+    if (!this.crossingRiver) {
+      if (distance(this, entry) <= 1.5) {
+        this.crossingRiver = true;
+        return exit;
+      }
+      return entry;
+    }
+
+    return exit;
   }
 
   update(dt, units, structures) {
