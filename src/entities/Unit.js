@@ -1,4 +1,4 @@
-import { distance, moveToward } from '../utils/math.js?v=0.1.2';
+import { distance, moveToward } from '../utils/math.js?v=0.1.3';
 
 export class Unit {
   constructor({ team, x, y, lane, stats, config }) {
@@ -32,7 +32,7 @@ export class Unit {
 
   hasReachedEnemySide() {
     const { river } = this.config;
-    const margin = 10;
+    const margin = 12;
 
     return this.team === 'player'
       ? this.y <= river.top - margin
@@ -76,39 +76,39 @@ export class Unit {
     return enemies.sort((a, b) => distance(this, a) - distance(this, b))[0];
   }
 
-  getNavigationPoint(target) {
+  getBridgeRoute(target) {
     const { river, bridges } = this.config;
     const bridgeX = bridges[this.lane];
-    const approachGap = 4;
-    const exitGap = 10;
+    const approachGap = 6;
+    const exitGap = 12;
 
-    if (this.crossedRiver) return target;
+    if (this.crossedRiver) return null;
 
     if (this.hasReachedEnemySide()) {
       this.crossedRiver = true;
       this.crossingRiver = false;
-      return target;
+      return null;
     }
 
     // Enquanto ainda está no próprio território, a unidade pode defender
-    // contra um inimigo que já tenha atravessado. Caso contrário, segue
-    // obrigatoriamente pela ponte da sua lane.
+    // contra um inimigo que já tenha atravessado. Fora desse caso, ela deve
+    // obrigatoriamente usar a ponte da lane.
     if (!this.crossingRiver && this.targetIsOnHomeSide(target)) {
-      return target;
+      return null;
     }
 
     const entry = this.team === 'player'
       ? { x: bridgeX, y: river.bottom + approachGap }
       : { x: bridgeX, y: river.top - approachGap };
 
+    // A saída fica de fato dentro do campo adversário, e não apenas na borda
+    // visual da ponte. A unidade só volta a procurar combate depois de chegar aqui.
     const exit = this.team === 'player'
       ? { x: bridgeX, y: river.top - exitGap }
       : { x: bridgeX, y: river.bottom + exitGap };
 
-    // Ao alcançar a entrada, a travessia vira um estado bloqueado.
-    // Trocas de alvo no meio do rio não podem mais tirar a unidade da ponte.
     if (!this.crossingRiver) {
-      if (distance(this, entry) <= 1.5) {
+      if (distance(this, entry) <= 2) {
         this.crossingRiver = true;
         return exit;
       }
@@ -128,6 +128,14 @@ export class Unit {
     const target = enemyUnit ?? this.getEnemyStructure(structures);
     if (!target) return;
 
+    // Navegação pela ponte tem prioridade absoluta sobre combate. Isso evita
+    // a tropa parar na borda do rio ao detectar um inimigo dentro do alcance.
+    const bridgeRoute = this.getBridgeRoute(target);
+    if (bridgeRoute) {
+      moveToward(this, bridgeRoute, this.speed * dt);
+      return;
+    }
+
     const reach = this.attackRange + (target.hitRadius ?? target.radius ?? 0);
     const d = distance(this, target);
 
@@ -140,8 +148,7 @@ export class Unit {
       return;
     }
 
-    const point = this.getNavigationPoint(target);
-    moveToward(this, point, this.speed * dt);
+    moveToward(this, target, this.speed * dt);
   }
 
   draw(ctx, palette) {
