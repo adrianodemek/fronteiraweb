@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { GAME_CONFIG } from '../src/config.js';
+import { BRIDGE_VISUAL_META } from '../src/world/Battlefield.js';
 
 const { width, height, battlefield, river, bridges, hud } = GAME_CONFIG;
 
@@ -11,6 +12,12 @@ assert.equal(river.top, 342, 'O rio deve começar em y=342.');
 assert.equal(river.bottom, 366, 'O rio deve terminar em y=366.');
 assert.equal(river.bottom - river.top, 24, 'O rio deve manter 24 px de largura vertical.');
 assert.deepEqual(bridges, [76, 284], 'As pontes devem manter as lanes abertas do layout de referência.');
+assert.equal(BRIDGE_VISUAL_META.landOverlap, 14, 'A ponte deve entrar 14 px na terra em cada margem.');
+assert.equal(
+  (river.bottom - river.top) + BRIDGE_VISUAL_META.landOverlap * 2,
+  52,
+  'A ponte visual deve cobrir agua, barrancos e as duas ancoragens de terra.',
+);
 assert.equal(hud.cardTop, 696, 'As cartas devem iniciar em y=696.');
 assert.equal(hud.supplyY, 774, 'A barra de Suprimentos deve ficar abaixo das cartas.');
 
