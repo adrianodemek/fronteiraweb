@@ -26,8 +26,9 @@ function makeStructure({ id, team, kind = 'base', lane = 0, x, y, hitRadius }) {
 function simulate(unit, units, structures, seconds, onStep) {
   const dt = 0.04;
   for (let elapsed = 0; elapsed < seconds; elapsed += dt) {
+    const previous = { x: unit.x, y: unit.y };
     unit.update(dt, units, structures);
-    onStep?.(unit, elapsed);
+    onStep?.(unit, elapsed, previous);
   }
 }
 
@@ -36,7 +37,7 @@ function simulate(unit, units, structures, seconds, onStep) {
     team: 'player',
     lane: 0,
     x: 180,
-    y: 620,
+    y: 640,
     stats,
     config: GAME_CONFIG,
   });
@@ -59,19 +60,41 @@ function simulate(unit, units, structures, seconds, onStep) {
 
   const clearance = ownHq.hitRadius + unit.radius + 3;
   let minimumDistance = Infinity;
+  let firstAvoidDistance = null;
+  let minimumMovingStep = Infinity;
+  let passedAt = null;
 
-  simulate(unit, [unit], [ownHq, target], 9, (current) => {
-    minimumDistance = Math.min(
-      minimumDistance,
-      Math.hypot(current.x - ownHq.x, current.y - ownHq.y),
-    );
+  simulate(unit, [unit], [ownHq, target], 9, (current, elapsed, previous) => {
+    const distanceFromHq = Math.hypot(current.x - ownHq.x, current.y - ownHq.y);
+    minimumDistance = Math.min(minimumDistance, distanceFromHq);
+
+    if (firstAvoidDistance === null && Math.abs(current.x - ownHq.x) >= 3) {
+      firstAvoidDistance = distanceFromHq;
+    }
+
+    if (passedAt === null) {
+      const step = Math.hypot(current.x - previous.x, current.y - previous.y);
+      minimumMovingStep = Math.min(minimumMovingStep, step);
+    }
+
+    if (passedAt === null && current.y < ownHq.y - clearance) {
+      passedAt = elapsed;
+    }
   });
 
   assert.ok(
     minimumDistance >= clearance - 0.05,
     `A unidade atravessou o QG: distância mínima ${minimumDistance}, necessária ${clearance}.`,
   );
-  assert.ok(unit.y < ownHq.y - 20, `A unidade ficou travada no QG: y=${unit.y}.`);
+  assert.ok(
+    firstAvoidDistance !== null && firstAvoidDistance > clearance + 18,
+    `A unidade começou a desviar tarde demais: distância ${firstAvoidDistance}.`,
+  );
+  assert.ok(
+    minimumMovingStep > 0.7,
+    `A unidade perdeu fluidez ao contornar a construção: menor passo ${minimumMovingStep}.`,
+  );
+  assert.ok(passedAt !== null && passedAt < 5.5, `A unidade demorou demais para passar pelo QG: ${passedAt}s.`);
   assert.ok(target.hp < 99999, 'A unidade desviou, mas não retomou o caminho até o alvo.');
 }
 
