@@ -1,14 +1,14 @@
 import { Structure } from './Structure.js?v=0.6.23';
 
 export const HQ_RUNTIME_ASSET_PATHS = Object.freeze({
-  enemy: new URL('../assets/structures/hq/hq_front.png?v=0.6.25&hq=enemy-front', import.meta.url).href,
-  player: new URL('../assets/structures/hq_back.png?v=0.6.25&hq=player-back-direct', import.meta.url).href,
+  enemy: new URL('../assets/structures/hq/hq_front.png?v=0.6.26&hq=enemy-front', import.meta.url).href,
+  player: new URL('../assets/structures/hq_back.png?v=0.6.26&hq=player-back-restored', import.meta.url).href,
 });
 
 export const HQ_RUNTIME_ASSET_FALLBACKS = Object.freeze({
   enemy: [],
   player: [
-    new URL('../assets/structures/hq/hq_back.png?v=0.6.25&hq=player-back-nested', import.meta.url).href,
+    new URL('../assets/structures/hq/hq_back.png?v=0.6.26&hq=player-back-restored-nested', import.meta.url).href,
   ],
 });
 
@@ -49,8 +49,7 @@ export class HeadquartersStructure extends Structure {
       if (canSave) ctx.save();
       if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
 
-      // Mapeamento visual fixo:
-      // player-hq = sprite de costas; enemy-hq = sprite frontal.
+      // player-hq = sprite traseiro restaurado; enemy-hq = sprite frontal.
       ctx.drawImage(sprite, x, y, w, h);
 
       if (this.flash > 0 && 'globalAlpha' in ctx) {
@@ -79,5 +78,6 @@ export const HQ_RUNTIME_META = Object.freeze({
   enemyAsset: 'hq_front.png',
   explicitStructureMapping: true,
   dualPathPlayerAsset: true,
-  release: '0.6.25',
+  restoredFromOriginalSheet: true,
+  release: '0.6.26',
 });
