@@ -1,4 +1,4 @@
-import { BattleGame } from './core/BattleGame.js?v=0.6.24';
+import { BattleGame } from './core/BattleGame.js?v=0.6.25';
 
 const canvas = document.querySelector('#game');
 
