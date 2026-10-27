@@ -1,6 +1,6 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
 import { Structure } from '../entities/Structure.js?v=0.6.23';
-import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.25';
+import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.26';
 
 // Mantemos a lógica das estruturas estável, mas os QGs usam uma classe visual
 // dedicada. Isso fixa explicitamente player-hq na visão de costas e enemy-hq
