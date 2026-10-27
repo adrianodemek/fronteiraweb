@@ -1,4 +1,4 @@
-import { RiverRenderer } from './RiverRenderer.js?v=0.6.7';
+import { RiverRenderer } from './RiverRenderer.js?v=0.6.8';
 
 export class Battlefield {
   constructor(config) {
