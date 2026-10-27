@@ -1,5 +1,5 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
-import { Structure } from '../entities/Structure.js?v=0.6.14';
+import { Structure } from '../entities/Structure.js?v=0.6.19';
 
 // Mantemos o Game base estável, mas recriamos as estruturas com a versão
 // atual da classe. Isso evita que o navegador reutilize Structure.js de um
