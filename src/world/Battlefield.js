@@ -1,5 +1,5 @@
-import { GroundRenderer } from './GroundRenderer.js?v=0.6.10';
-import { RiverRenderer } from './RiverRenderer.js?v=0.6.10';
+import { GroundRenderer } from './GroundRenderer.js?v=0.6.11';
+import { RiverRenderer } from './RiverRenderer.js?v=0.6.11';
 
 export class Battlefield {
   constructor(config) {
