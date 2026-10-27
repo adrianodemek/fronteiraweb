@@ -1,8 +1,8 @@
 import { Game } from './Game.js?v=0.6.0';
-import { GAME_CONFIG } from '../config.js?v=0.6.7';
-import { Battlefield } from '../world/Battlefield.js?v=0.6.7';
-import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.7';
-import { clamp } from '../utils/math.js?v=0.6.7';
+import { GAME_CONFIG } from '../config.js?v=0.6.8';
+import { Battlefield } from '../world/Battlefield.js?v=0.6.8';
+import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.8';
+import { clamp } from '../utils/math.js?v=0.6.8';
 
 export class BattleGame extends Game {
   constructor(canvas) {
