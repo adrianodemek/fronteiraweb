@@ -1,5 +1,5 @@
-import { GroundRenderer } from './GroundRenderer.js?v=0.6.13';
-import { RiverRenderer } from './RiverRenderer.js?v=0.6.15';
+import { GroundRenderer } from './GroundRenderer.js?v=0.6.16';
+import { RiverRenderer } from './RiverRenderer.js?v=0.6.16';
 
 const BRIDGE_LAND_OVERLAP = 14;
 
