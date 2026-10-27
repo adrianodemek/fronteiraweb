@@ -5,9 +5,22 @@ export class CardSystem {
   }
 
   reset() {
-    const cards = this.config.cards.map((card) => ({ ...card }));
-    this.hand = cards.slice(0, 4);
-    this.queue = cards.slice(4);
+    const catalog = new Map(this.config.cards.map((card) => [card.id, { ...card }]));
+    const deckIds = this.config.battleDeck?.length
+      ? this.config.battleDeck
+      : this.config.cards.map((card) => card.id);
+
+    const cards = deckIds
+      .map((id) => catalog.get(id))
+      .filter(Boolean);
+
+    if (cards.length < 4) {
+      throw new Error('O deck de batalha precisa ter pelo menos quatro cartas válidas.');
+    }
+
+    this.deck = cards.map((card) => ({ ...card }));
+    this.hand = this.deck.slice(0, 4);
+    this.queue = this.deck.slice(4);
     this.selectedIndex = null;
   }
 
