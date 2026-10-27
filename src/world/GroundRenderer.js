@@ -1,20 +1,20 @@
 import {
-  GROUND_BASE_SHEET,
-  GROUND_TILE_WIDTH,
-  GROUND_TILE_HEIGHT,
-  GROUND_TILE_COUNT,
-} from '../assets/ground/base/sheet.js?v=0.6.9';
+  GROUND_TEXTURE_URL,
+  GROUND_FRAME_WIDTH,
+  GROUND_FRAME_HEIGHT,
+  GROUND_FRAME_COUNT,
+} from '../assets/ground/base/manifest.js?v=0.6.10';
 import {
-  GROUND_TOP_TRANSITION_SHEET,
-  TRANSITION_TILE_WIDTH,
-  TRANSITION_TILE_HEIGHT,
-  TRANSITION_TILE_COUNT,
-} from '../assets/ground/transition/top/sheet.js?v=0.6.9';
-import { GROUND_BOTTOM_TRANSITION_SHEET } from '../assets/ground/transition/bottom/sheet.js?v=0.6.9';
+  GROUND_LANE_URL,
+  LANE_FRAME_WIDTH,
+  LANE_FRAME_HEIGHT,
+  LANE_FRAME_COUNT,
+} from '../assets/ground/lane/manifest.js?v=0.6.10';
 
-const TILE_DRAW_SIZE = 64;
-const TRANSITION_DRAW_HEIGHT = 16;
-const TILE_STEP = TILE_DRAW_SIZE - 1;
+const GROUND_DRAW_WIDTH = 360;
+const GROUND_DRAW_HEIGHT = 256;
+const LANE_DRAW_WIDTH = 20;
+const LANE_DRAW_HEIGHT = 64;
 
 function createImage(source) {
   if (typeof Image === 'undefined') return null;
@@ -26,9 +26,8 @@ function createImage(source) {
 export class GroundRenderer {
   constructor(config) {
     this.config = config;
-    this.base = createImage(GROUND_BASE_SHEET);
-    this.topTransition = createImage(GROUND_TOP_TRANSITION_SHEET);
-    this.bottomTransition = createImage(GROUND_BOTTOM_TRANSITION_SHEET);
+    this.ground = createImage(GROUND_TEXTURE_URL);
+    this.lanes = createImage(GROUND_LANE_URL);
   }
 
   isReady(image) {
@@ -41,7 +40,7 @@ export class GroundRenderer {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    if (!this.isReady(this.base)) {
+    if (!this.isReady(this.ground)) {
       ctx.fillStyle = palette.grass;
       ctx.fillRect(0, battlefield.top, width, battlefield.bottom - battlefield.top);
       ctx.restore();
@@ -49,76 +48,77 @@ export class GroundRenderer {
     }
 
     this.drawBase(ctx);
-    this.drawRiverTransitions(ctx);
+    this.drawLanes(ctx);
     ctx.restore();
   }
 
   drawBase(ctx) {
     const { width, battlefield } = this.config;
 
-    for (let y = battlefield.top, row = 0; y < battlefield.bottom; y += TILE_STEP, row += 1) {
-      for (let x = 0, column = 0; x < width; x += TILE_STEP, column += 1) {
-        const frame = (column + row * 2) % GROUND_TILE_COUNT;
-        ctx.drawImage(
-          this.base,
-          frame * GROUND_TILE_WIDTH,
-          0,
-          GROUND_TILE_WIDTH,
-          GROUND_TILE_HEIGHT,
-          x,
-          y,
-          TILE_DRAW_SIZE,
-          TILE_DRAW_SIZE,
-        );
-      }
+    for (let y = battlefield.top, row = 0; y < battlefield.bottom; y += GROUND_DRAW_HEIGHT, row += 1) {
+      const frame = row % GROUND_FRAME_COUNT;
+      const remaining = battlefield.bottom - y;
+      const drawHeight = Math.min(GROUND_DRAW_HEIGHT, remaining);
+      const sourceHeight = Math.max(1, Math.ceil((drawHeight / GROUND_DRAW_HEIGHT) * GROUND_FRAME_HEIGHT));
+
+      ctx.drawImage(
+        this.ground,
+        frame * GROUND_FRAME_WIDTH,
+        0,
+        GROUND_FRAME_WIDTH,
+        sourceHeight,
+        0,
+        y,
+        width,
+        drawHeight,
+      );
     }
   }
 
-  drawRiverTransitions(ctx) {
-    const { width, river } = this.config;
-    const topY = river.top - TRANSITION_DRAW_HEIGHT;
-    const bottomY = river.bottom;
+  drawLanes(ctx) {
+    if (!this.isReady(this.lanes)) return;
 
-    if (this.isReady(this.topTransition)) {
-      for (let x = 0, tile = 0; x < width; x += TILE_STEP, tile += 1) {
-        const frame = tile % TRANSITION_TILE_COUNT;
-        ctx.drawImage(
-          this.topTransition,
-          frame * TRANSITION_TILE_WIDTH,
-          0,
-          TRANSITION_TILE_WIDTH,
-          TRANSITION_TILE_HEIGHT,
-          x,
-          topY,
-          TILE_DRAW_SIZE,
-          TRANSITION_DRAW_HEIGHT,
-        );
-      }
+    const { battlefield, river, bridges } = this.config;
+
+    for (let lane = 0; lane < bridges.length; lane += 1) {
+      const centerX = bridges[lane];
+      const x = Math.round(centerX - LANE_DRAW_WIDTH / 2);
+
+      this.drawLaneSection(ctx, lane, x, battlefield.top + 72, river.top);
+      this.drawLaneSection(ctx, lane + 1, x, river.bottom, battlefield.bottom - 76);
     }
+  }
 
-    if (this.isReady(this.bottomTransition)) {
-      for (let x = 0, tile = 0; x < width; x += TILE_STEP, tile += 1) {
-        const frame = tile % TRANSITION_TILE_COUNT;
-        ctx.drawImage(
-          this.bottomTransition,
-          frame * TRANSITION_TILE_WIDTH,
-          0,
-          TRANSITION_TILE_WIDTH,
-          TRANSITION_TILE_HEIGHT,
-          x,
-          bottomY,
-          TILE_DRAW_SIZE,
-          TRANSITION_DRAW_HEIGHT,
-        );
-      }
+  drawLaneSection(ctx, seed, x, startY, endY) {
+    for (let y = startY, segment = 0; y < endY; y += LANE_DRAW_HEIGHT, segment += 1) {
+      const frame = (seed + segment) % LANE_FRAME_COUNT;
+      const remaining = endY - y;
+      const drawHeight = Math.min(LANE_DRAW_HEIGHT, remaining);
+      const sourceHeight = Math.max(1, Math.ceil((drawHeight / LANE_DRAW_HEIGHT) * LANE_FRAME_HEIGHT));
+
+      ctx.drawImage(
+        this.lanes,
+        frame * LANE_FRAME_WIDTH,
+        0,
+        LANE_FRAME_WIDTH,
+        sourceHeight,
+        x,
+        y,
+        LANE_DRAW_WIDTH,
+        drawHeight,
+      );
     }
   }
 }
 
 export const GROUND_SPRITE_META = Object.freeze({
-  tiles: GROUND_TILE_COUNT,
-  tileWidth: GROUND_TILE_WIDTH,
-  tileHeight: GROUND_TILE_HEIGHT,
-  transitionTiles: TRANSITION_TILE_COUNT,
-  transitionHeight: TRANSITION_DRAW_HEIGHT,
+  groundFrames: GROUND_FRAME_COUNT,
+  groundFrameWidth: GROUND_FRAME_WIDTH,
+  groundFrameHeight: GROUND_FRAME_HEIGHT,
+  groundDrawWidth: GROUND_DRAW_WIDTH,
+  groundDrawHeight: GROUND_DRAW_HEIGHT,
+  laneFrames: LANE_FRAME_COUNT,
+  laneFrameWidth: LANE_FRAME_WIDTH,
+  laneFrameHeight: LANE_FRAME_HEIGHT,
+  laneDrawWidth: LANE_DRAW_WIDTH,
 });
