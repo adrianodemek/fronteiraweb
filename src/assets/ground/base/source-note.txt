@@ -1,0 +1,1 @@
+V0.6.10: o chão passa a usar PNG real extraído do preview 16-bit aprovado, com trilhas separadas e sem a transição simplificada da V0.6.9.
