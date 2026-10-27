@@ -1,7 +1,7 @@
 import { Game } from './Game.js?v=0.6.0';
-import { GAME_CONFIG } from '../config.js?v=0.6.2';
-import { Unit } from '../entities/Unit.js?v=0.6.2';
-import { clamp } from '../utils/math.js?v=0.6.2';
+import { GAME_CONFIG } from '../config.js?v=0.6.3';
+import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.3';
+import { clamp } from '../utils/math.js?v=0.6.3';
 
 export class BattleGame extends Game {
   constructor(canvas) {
@@ -24,7 +24,7 @@ export class BattleGame extends Game {
     const stats = unitTypes[unitType] ?? unitTypes.rifleman ?? this.config.infantry;
     if (!stats) return false;
 
-    this.units.push(new Unit({
+    this.units.push(new BattleUnit({
       team,
       lane,
       x,
