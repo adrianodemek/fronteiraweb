@@ -1,13 +1,14 @@
 import { distance } from '../utils/math.js';
 
-const HQ_WIDTH = 160;
-const HQ_HEIGHT = 100;
+const HQ_WIDTH = 140;
+const HQ_HEIGHT = 88;
+const HQ_FIELD_INSET_Y = 15;
 const HQ_CANNON_MOUNT_OFFSET_X = 0;
 const HQ_CANNON_MOUNT_OFFSET_Y = -10;
 
 export const HQ_ASSET_PATHS = Object.freeze({
-  front: new URL('../assets/structures/hq/hq_front.png?v=0.6.22', import.meta.url).href,
-  back: new URL('../assets/structures/hq/hq_back.png?v=0.6.22', import.meta.url).href,
+  front: new URL('../assets/structures/hq/hq_front.png?v=0.6.23', import.meta.url).href,
+  back: new URL('../assets/structures/hq/hq_back.png?v=0.6.23', import.meta.url).href,
 });
 
 function createSprite(src) {
@@ -23,23 +24,6 @@ const HQ_SPRITES = Object.freeze({
   front: createSprite(HQ_ASSET_PATHS.front),
   back: createSprite(HQ_ASSET_PATHS.back),
 });
-
-function fitSpriteRect(sprite, x, y, w, h) {
-  const sourceWidth = sprite?.naturalWidth ?? 0;
-  const sourceHeight = sprite?.naturalHeight ?? 0;
-  if (sourceWidth <= 0 || sourceHeight <= 0) return { x, y, w, h };
-
-  const scale = Math.min(w / sourceWidth, h / sourceHeight);
-  const drawW = Math.max(1, Math.round(sourceWidth * scale));
-  const drawH = Math.max(1, Math.round(sourceHeight * scale));
-
-  return {
-    x: Math.round(x + (w - drawW) / 2),
-    y: Math.round(y + (h - drawH) / 2),
-    w: drawW,
-    h: drawH,
-  };
-}
 
 export class Structure {
   constructor(data) {
@@ -100,17 +84,24 @@ export class Structure {
 
   draw(ctx, palette) {
     const isHq = this.kind === 'hq';
+    const isPlayer = this.team === 'player';
     const w = isHq ? HQ_WIDTH : 44;
     const h = isHq ? HQ_HEIGHT : 46;
     const x = Math.round(this.x - w / 2);
-    const y = Math.round(this.y - h / 2);
+
+    // O QG usa uma âncora visual voltada para fora do centro da arena.
+    // Assim o inimigo ocupa o terreno atrás das bases superiores e o QG
+    // do jogador ocupa o terreno atrás das bases inferiores, mantendo a
+    // leitura de profundidade/perspectiva do mapa e evitando sobreposição.
+    const y = isHq
+      ? Math.round(isPlayer ? this.y - HQ_FIELD_INSET_Y : this.y - h + HQ_FIELD_INSET_Y)
+      : Math.round(this.y - h / 2);
 
     if (!this.alive) {
       this.drawDestroyed(ctx, palette, x, y, w, h, isHq);
       return;
     }
 
-    const isPlayer = this.team === 'player';
     const body = isPlayer ? palette.player : palette.enemy;
     const light = isPlayer ? palette.playerLight : palette.enemyLight;
 
@@ -130,16 +121,19 @@ export class Structure {
 
     if (sprite?.complete && sprite.naturalWidth > 0 && sprite.naturalHeight > 0 && typeof ctx.drawImage === 'function') {
       const canSave = typeof ctx.save === 'function' && typeof ctx.restore === 'function';
-      const rect = fitSpriteRect(sprite, x, y, w, h);
 
       if (canSave) ctx.save();
       if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sprite, rect.x, rect.y, rect.w, rect.h);
+
+      // Frente e costas possuem recortes-fonte com 1 px de diferença de altura.
+      // Desenhamos ambos exatamente na mesma caixa para que os dois QGs tenham
+      // o mesmo tamanho perceptivo no campo.
+      ctx.drawImage(sprite, x, y, w, h);
 
       if (this.flash > 0 && 'globalAlpha' in ctx) {
         const previousAlpha = ctx.globalAlpha;
         ctx.globalAlpha = 0.2;
-        ctx.drawImage(sprite, rect.x, rect.y, rect.w, rect.h);
+        ctx.drawImage(sprite, x, y, w, h);
         ctx.globalAlpha = previousAlpha ?? 1;
       }
 
@@ -251,12 +245,16 @@ export class Structure {
 export const HQ_VISUAL_META = Object.freeze({
   width: HQ_WIDTH,
   height: HQ_HEIGHT,
+  fieldInsetY: HQ_FIELD_INSET_Y,
   spriteBased: true,
   assetDirectory: 'src/assets/structures/hq/',
   enemyView: 'front',
   playerView: 'back',
   frontAsset: 'hq_front.png',
   backAsset: 'hq_back.png',
+  sameVisualSizeBothTeams: true,
+  mapPerspective: 'outward-from-center',
+  placementMode: 'team-outward-ground-anchor',
   transparentBackground: true,
   pixelArt: true,
   imageSmoothing: false,
