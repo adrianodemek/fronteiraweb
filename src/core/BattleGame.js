@@ -1,6 +1,6 @@
 import { Game } from './Game.js?v=0.6.0';
-import { GAME_CONFIG } from '../config.js?v=0.6.12';
-import { Battlefield } from '../world/Battlefield.js?v=0.6.12';
+import { GAME_CONFIG } from '../config.js?v=0.6.13';
+import { Battlefield } from '../world/Battlefield.js?v=0.6.13';
 import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.11';
 import { clamp } from '../utils/math.js?v=0.6.11';
 
