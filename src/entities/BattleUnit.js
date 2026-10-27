@@ -1,5 +1,5 @@
-import { Unit } from './Unit.js?v=0.6.2';
-import { distance, moveToward } from '../utils/math.js?v=0.6.4';
+import { Unit } from './Unit.js?v=0.6.5';
+import { distance, moveToward } from '../utils/math.js?v=0.6.5';
 
 export class BattleUnit extends Unit {
   constructor(options) {
