@@ -1,8 +1,22 @@
 import { Game } from './Game.js?v=0.6.0';
-import { Unit } from '../entities/Unit.js?v=0.6.0';
-import { clamp } from '../utils/math.js?v=0.6.0';
+import { GAME_CONFIG } from '../config.js?v=0.6.1';
+import { Unit } from '../entities/Unit.js?v=0.6.1';
+import { clamp } from '../utils/math.js?v=0.6.1';
 
 export class BattleGame extends Game {
+  constructor(canvas) {
+    super(canvas);
+
+    // Garante que a versão jogável use sempre a configuração fresca desta
+    // release, mesmo se o navegador ainda tiver o Game base em cache.
+    this.config = GAME_CONFIG;
+    this.battlefield.config = GAME_CONFIG;
+    this.deployment.config = GAME_CONFIG;
+    this.supplies.config = GAME_CONFIG;
+    this.cards.config = GAME_CONFIG;
+    this.reset();
+  }
+
   spawnUnit(team, lane, x, y, unitType = 'rifleman') {
     if (this.units.length >= 70) return false;
 
