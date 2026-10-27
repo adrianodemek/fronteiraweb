@@ -1,5 +1,5 @@
-import { GroundRenderer } from './GroundRenderer.js?v=0.6.9';
-import { RiverRenderer } from './RiverRenderer.js?v=0.6.9';
+import { GroundRenderer } from './GroundRenderer.js?v=0.6.10';
+import { RiverRenderer } from './RiverRenderer.js?v=0.6.10';
 
 export class Battlefield {
   constructor(config) {
@@ -16,7 +16,6 @@ export class Battlefield {
     } = this.config;
 
     this.groundRenderer.draw(ctx);
-    this.drawLaneTracks(ctx);
     this.riverRenderer.draw(ctx, time);
 
     // As pontes ficam acima da água e das margens. A lógica de travessia
@@ -26,18 +25,6 @@ export class Battlefield {
     }
 
     this.drawArenaEdges(ctx);
-  }
-
-  drawLaneTracks(ctx) {
-    const { battlefield, river, bridges } = this.config;
-
-    // Marcas de passagem intencionalmente discretas para orientar o olhar
-    // sem competir com tropas, projéteis, itens ou estruturas.
-    ctx.fillStyle = 'rgba(61, 72, 43, 0.065)';
-    for (const bridgeX of bridges) {
-      ctx.fillRect(bridgeX - 6, battlefield.top + 72, 12, river.top - battlefield.top - 72);
-      ctx.fillRect(bridgeX - 6, river.bottom, 12, battlefield.bottom - river.bottom - 76);
-    }
   }
 
   drawBridge(ctx, centerX, top, bottom, width) {
