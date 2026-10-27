@@ -1,5 +1,5 @@
-import { Game } from './GameRuntime.js?v=0.6.23';
-import { GAME_CONFIG } from '../config.js?v=0.6.23';
+import { Game } from './GameRuntime.js?v=0.6.24';
+import { GAME_CONFIG } from '../configRuntime.js?v=0.6.24';
 import { Battlefield } from '../world/Battlefield.js?v=0.6.18';
 import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.11';
 import { clamp } from '../utils/math.js?v=0.6.11';
