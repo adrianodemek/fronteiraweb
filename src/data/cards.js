@@ -1,0 +1,46 @@
+export const CARD_CATALOG = Object.freeze([
+  { id: 'rifleman', name: 'Fuzileiros', short: 'FUZIL.', fullName: 'Fuzileiros M1 Garand', rarity: 'common', cost: 3, category: 'infantry', role: 'Equilibrada', playType: 'unit', unitType: 'rifleman', implemented: true, accent: '#738454' },
+  { id: 'scout', name: 'Batedor', short: 'BATEDOR', fullName: 'Willys MB de Reconhecimento', rarity: 'common', cost: 2, category: 'recon', role: 'Reconhecimento rápido', playType: 'unit', unitType: 'scout', implemented: true, accent: '#5f7e73' },
+  { id: 'machinegun', name: 'MG42', short: 'MG42', fullName: 'Equipe MG42', rarity: 'common', cost: 3, category: 'infantry', role: 'Anti-infantaria', playType: 'unit', unitType: 'machinegun', implemented: true, accent: '#6d6658' },
+  { id: 'grenadier', name: 'Granadeiros', short: 'GRANAD.', fullName: 'Granadeiros M24', rarity: 'common', cost: 3, category: 'infantry', role: 'Dano em área', playType: 'unit', unitType: 'grenadier', implemented: true, accent: '#8a6e45' },
+  { id: 'engineer', name: 'Engenheiros', short: 'ENG.', fullName: 'Engenheiros de Combate', rarity: 'common', cost: 3, category: 'support', role: 'Reparo e suporte', playType: 'unit', unitType: 'engineer', implemented: true, accent: '#8c7657' },
+  { id: 'mortar', name: 'Morteiro', short: 'MORTEIRO', fullName: 'Morteiro M2 60 mm', rarity: 'common', cost: 4, category: 'artillery', role: 'Ataque indireto', playType: 'unit', unitType: 'mortar', implemented: true, accent: '#5c665d' },
+  { id: 'bazooka', name: 'Bazooka', short: 'BAZOOKA', fullName: 'Bazooka M1A1', rarity: 'common', cost: 3, category: 'anti_tank', role: 'Antiblindado barato', playType: 'unit', unitType: null, implemented: false, accent: '#70694d' },
+  { id: 'm3', name: 'M3', short: 'M3', fullName: 'M3 Half-track', rarity: 'common', cost: 4, category: 'transport', role: 'Transporte de infantaria', playType: 'unit', unitType: null, implemented: false, accent: '#65715d' },
+  { id: 'stuart', name: 'Stuart', short: 'STUART', fullName: 'M3 Stuart', rarity: 'common', cost: 4, category: 'light_tank', role: 'Tanque leve rápido', playType: 'unit', unitType: null, implemented: false, accent: '#707b5a' },
+  { id: 'artillery', name: 'Artilharia', short: 'ARTIL.', fullName: 'QF 25-Pounder', rarity: 'common', cost: 4, category: 'artillery', role: 'Artilharia de campanha', playType: 'unit', unitType: null, implemented: false, accent: '#726a55' },
+
+  { id: 'sniper', name: 'Sniper', short: 'SNIPER', fullName: 'Springfield M1903', rarity: 'rare', cost: 3, category: 'infantry', role: 'Longo alcance', playType: 'unit', unitType: null, implemented: false, accent: '#596d5d' },
+  { id: 'flamethrower', name: 'Lança-Chamas', short: 'L-CHAMAS', fullName: 'Lança-Chamas M2', rarity: 'rare', cost: 4, category: 'infantry', role: 'Anti-infantaria próxima', playType: 'unit', unitType: null, implemented: false, accent: '#8a6545' },
+  { id: 'medic', name: 'Médico', short: 'MÉDICO', fullName: 'Médico de Campanha', rarity: 'rare', cost: 3, category: 'support', role: 'Cura de tropas', playType: 'unit', unitType: 'medic', implemented: true, accent: '#71806b' },
+  { id: 'sherman', name: 'Sherman', short: 'SHERMAN', fullName: 'M4 Sherman', rarity: 'rare', cost: 5, category: 'medium_tank', role: 'Tanque médio equilibrado', playType: 'unit', unitType: null, implemented: false, accent: '#697354' },
+  { id: 'm10', name: 'M10', short: 'M10', fullName: 'M10 Wolverine', rarity: 'rare', cost: 5, category: 'tank_destroyer', role: 'Caça-tanque móvel', playType: 'unit', unitType: null, implemented: false, accent: '#6e7055' },
+  { id: 'pak40', name: 'Pak 40', short: 'PAK 40', fullName: '7.5 cm Pak 40', rarity: 'rare', cost: 4, category: 'anti_tank', role: 'Defesa antitanque', playType: 'unit', unitType: null, implemented: false, accent: '#68655b' },
+  { id: 'bofors', name: 'Bofors', short: 'BOFORS', fullName: 'Bofors 40 mm', rarity: 'rare', cost: 4, category: 'anti_air', role: 'Defesa antiaérea', playType: 'unit', unitType: null, implemented: false, accent: '#60706b' },
+  { id: 'barrage', name: 'Barragem', short: 'BARRAGEM', fullName: 'Barragem de 105 mm', rarity: 'rare', cost: 4, category: 'tactic', role: 'Ataque de área', playType: 'tactic', unitType: null, implemented: false, accent: '#786355' },
+
+  { id: 'paratroopers', name: 'Paraquedistas', short: 'PARA.', fullName: '101ª Divisão Aerotransportada', rarity: 'epic', cost: 5, category: 'airborne', role: 'Implantação avançada', playType: 'unit', unitType: null, implemented: false, accent: '#6b745b' },
+  { id: 'rangers', name: 'Rangers', short: 'RANGERS', fullName: '2º Batalhão Rangers', rarity: 'epic', cost: 5, category: 'elite_infantry', role: 'Infantaria de elite', playType: 'unit', unitType: 'assault', implemented: true, accent: '#7d5f4e' },
+  { id: 'tiger', name: 'Tiger', short: 'TIGER', fullName: 'Tiger I', rarity: 'epic', cost: 6, category: 'heavy_tank', role: 'Tanque pesado', playType: 'unit', unitType: null, implemented: false, accent: '#76684c' },
+  { id: 'katyusha', name: 'Katyusha', short: 'KATYUSHA', fullName: 'BM-13 Katyusha', rarity: 'epic', cost: 5, category: 'rocket_artillery', role: 'Rajada de foguetes', playType: 'unit', unitType: null, implemented: false, accent: '#665e50' },
+  { id: 'churchill', name: 'Churchill', short: 'CHURCH.', fullName: 'Churchill Crocodile', rarity: 'epic', cost: 6, category: 'flame_tank', role: 'Blindado lança-chamas', playType: 'unit', unitType: null, implemented: false, accent: '#75614d' },
+  { id: 'mustang', name: 'Mustang', short: 'MUSTANG', fullName: 'P-51 Mustang', rarity: 'epic', cost: 4, category: 'fighter', role: 'Caça e interceptação', playType: 'air', unitType: null, implemented: false, accent: '#5d6f76' },
+  { id: 'stuka', name: 'Stuka', short: 'STUKA', fullName: 'Ju 87 Stuka', rarity: 'epic', cost: 5, category: 'air_attack', role: 'Ataque aéreo ao solo', playType: 'air', unitType: null, implemented: false, accent: '#66675a' },
+
+  { id: 'tiger2', name: 'Tiger II', short: 'TIGER II', fullName: 'Tiger II Königstiger', rarity: 'legendary', cost: 8, category: 'superheavy_tank', role: 'Blindado máximo', playType: 'unit', unitType: null, implemented: false, accent: '#7a6548' },
+  { id: 'jagdtiger', name: 'Jagdtiger', short: 'JAGDTIG.', fullName: 'Jagdtiger', rarity: 'legendary', cost: 8, category: 'heavy_tank_destroyer', role: 'Caça-tanque pesado', playType: 'unit', unitType: null, implemented: false, accent: '#6f624d' },
+  { id: 'b17', name: 'B-17', short: 'B-17', fullName: 'B-17 Flying Fortress', rarity: 'legendary', cost: 7, category: 'strategic_bomber', role: 'Bombardeio pesado', playType: 'air', unitType: null, implemented: false, accent: '#586b73' },
+  { id: 'sas', name: 'SAS', short: 'SAS', fullName: 'Comandos SAS', rarity: 'legendary', cost: 5, category: 'special_forces', role: 'Operações especiais', playType: 'unit', unitType: null, implemented: false, accent: '#665c51' },
+  { id: 'hummel', name: 'Hummel', short: 'HUMMEL', fullName: 'Hummel 15 cm', rarity: 'legendary', cost: 6, category: 'spg', role: 'Artilharia autopropulsada', playType: 'unit', unitType: null, implemented: false, accent: '#71644f' },
+]);
+
+export const DEFAULT_BATTLE_DECK = Object.freeze([
+  'rifleman',
+  'grenadier',
+  'scout',
+  'machinegun',
+  'medic',
+  'engineer',
+  'mortar',
+  'rangers',
+]);
