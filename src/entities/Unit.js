@@ -1,4 +1,4 @@
-import { distance, moveToward } from '../utils/math.js?v=0.1.5';
+import { distance, moveToward } from '../utils/math.js?v=0.6.1';
 
 export class Unit {
   constructor({ team, x, y, lane, stats, config, type = 'rifleman' }) {
@@ -21,6 +21,7 @@ export class Unit {
     this.visual = stats.visual ?? type;
     this.cooldown = 0;
     this.flash = 0;
+    this.avoidance = null;
   }
 
   get alive() {
@@ -132,6 +133,166 @@ export class Unit {
     return target;
   }
 
+  getStructureClearance(structure) {
+    const structureRadius = structure.hitRadius ?? (structure.kind === 'hq' ? 28 : 22);
+    return structureRadius + this.radius + 3;
+  }
+
+  separateFromStructures(structures) {
+    // Duas passagens resolvem inclusive casos raros em que duas áreas sólidas
+    // se encostam. A unidade sempre termina fora do volume físico da construção.
+    for (let pass = 0; pass < 2; pass += 1) {
+      for (const structure of structures) {
+        const clearance = this.getStructureClearance(structure);
+        let dx = this.x - structure.x;
+        let dy = this.y - structure.y;
+        let d = Math.hypot(dx, dy);
+
+        if (d >= clearance) continue;
+
+        if (d < 0.001) {
+          dx = this.lane === 0 ? -1 : 1;
+          dy = this.team === 'player' ? 0.65 : -0.65;
+          d = Math.hypot(dx, dy);
+        }
+
+        this.x = structure.x + (dx / d) * clearance;
+        this.y = structure.y + (dy / d) * clearance;
+      }
+    }
+  }
+
+  distanceToSegment(point, ax, ay, bx, by) {
+    const abx = bx - ax;
+    const aby = by - ay;
+    const lengthSquared = abx * abx + aby * aby;
+
+    if (lengthSquared <= 0.0001) return Math.hypot(point.x - ax, point.y - ay);
+
+    const t = Math.max(0, Math.min(1, (
+      (point.x - ax) * abx + (point.y - ay) * aby
+    ) / lengthSquared));
+    const px = ax + abx * t;
+    const py = ay + aby * t;
+    return Math.hypot(point.x - px, point.y - py);
+  }
+
+  findBlockingStructure(goal, structures, target) {
+    const dx = goal.x - this.x;
+    const dy = goal.y - this.y;
+    const length = Math.hypot(dx, dy);
+    if (length <= 0.001) return null;
+
+    const nx = dx / length;
+    const ny = dy / length;
+    const lookAhead = Math.min(length, Math.max(34, this.speed * 0.9));
+    const endX = this.x + nx * lookAhead;
+    const endY = this.y + ny * lookAhead;
+    let blocker = null;
+    let blockerForwardDistance = Infinity;
+
+    for (const structure of structures) {
+      // O alvo principal não deve ser contornado: a distância de ataque já
+      // inclui o volume físico dele e impede que a unidade entre na construção.
+      if (structure === target) continue;
+
+      const toObstacleX = structure.x - this.x;
+      const toObstacleY = structure.y - this.y;
+      const forward = toObstacleX * nx + toObstacleY * ny;
+      const clearance = this.getStructureClearance(structure);
+
+      if (forward < -clearance || forward > lookAhead + clearance) continue;
+
+      const pathDistance = this.distanceToSegment(
+        structure,
+        this.x,
+        this.y,
+        endX,
+        endY,
+      );
+
+      if (pathDistance <= clearance + 2 && forward < blockerForwardDistance) {
+        blocker = structure;
+        blockerForwardDistance = forward;
+      }
+    }
+
+    return blocker;
+  }
+
+  chooseAvoidanceSide(blocker, goal) {
+    if (this.avoidance?.structure === blocker) return this.avoidance.side;
+
+    const dx = goal.x - this.x;
+    const dy = goal.y - this.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const nx = dx / length;
+    const ny = dy / length;
+    const px = -ny;
+    const py = nx;
+    const clearance = this.getStructureClearance(blocker) + 7;
+    const margin = this.config.deployment?.edgeMargin ?? 10;
+
+    const scoreSide = (side) => {
+      const x = blocker.x + px * clearance * side;
+      const y = blocker.y + py * clearance * side;
+      let score = Math.hypot(x - this.x, y - this.y) + Math.hypot(goal.x - x, goal.y - y);
+
+      if (x < margin + this.radius || x > this.config.width - margin - this.radius) score += 1000;
+      if (
+        y >= this.config.river.top
+        && y <= this.config.river.bottom
+        && !this.isInsideBridge(x)
+      ) score += 1000;
+
+      return score;
+    };
+
+    const leftScore = scoreSide(1);
+    const rightScore = scoreSide(-1);
+    let side;
+
+    if (Math.abs(leftScore - rightScore) < 0.01) {
+      // Desempate estável por lane para impedir troca de lado a cada frame.
+      side = this.lane === 0 ? -1 : 1;
+    } else {
+      side = leftScore < rightScore ? 1 : -1;
+    }
+
+    this.avoidance = { structure: blocker, side };
+    return side;
+  }
+
+  getStructureAvoidancePoint(goal, structures, target) {
+    const blocker = this.findBlockingStructure(goal, structures, target);
+    if (!blocker) {
+      this.avoidance = null;
+      return goal;
+    }
+
+    const dx = goal.x - this.x;
+    const dy = goal.y - this.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const nx = dx / length;
+    const ny = dy / length;
+    const px = -ny;
+    const py = nx;
+    const side = this.chooseAvoidanceSide(blocker, goal);
+    const clearance = this.getStructureClearance(blocker) + 7;
+
+    return {
+      x: blocker.x + px * clearance * side + nx * 9,
+      y: blocker.y + py * clearance * side + ny * 9,
+    };
+  }
+
+  moveAvoidingStructures(goal, structures, target, amount) {
+    this.separateFromStructures(structures);
+    const waypoint = this.getStructureAvoidancePoint(goal, structures, target);
+    moveToward(this, waypoint, amount);
+    this.separateFromStructures(structures);
+  }
+
   attack(target, units) {
     target.takeDamage(this.damage);
 
@@ -151,12 +312,15 @@ export class Unit {
 
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.flash = Math.max(0, this.flash - dt);
+    this.separateFromStructures(structures);
 
     const enemyUnit = this.getEnemyUnit(units);
     const target = enemyUnit ?? this.getEnemyStructure(structures);
     if (!target) return;
 
-    const reach = this.attackRange + (target.hitRadius ?? target.radius ?? 0);
+    // O raio da própria unidade entra no alcance físico. Assim ela ataca da
+    // borda da construção e nunca precisa invadir o volume sólido do alvo.
+    const reach = this.attackRange + this.radius + (target.hitRadius ?? target.radius ?? 0);
     const d = distance(this, target);
 
     if (d <= reach) {
@@ -168,8 +332,8 @@ export class Unit {
       return;
     }
 
-    const point = this.getNavigationPoint(target);
-    moveToward(this, point, this.speed * dt);
+    const navigationPoint = this.getNavigationPoint(target);
+    this.moveAvoidingStructures(navigationPoint, structures, target, this.speed * dt);
   }
 
   drawEquipment(ctx, px, py, up, body, light) {
