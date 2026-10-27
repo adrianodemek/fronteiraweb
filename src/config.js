@@ -1,5 +1,7 @@
+import { CARD_CATALOG, DEFAULT_BATTLE_DECK } from './data/cards.js?v=0.6.0';
+
 export const GAME_CONFIG = Object.freeze({
-  version: '0.5.1',
+  version: '0.6.0',
   width: 360,
   height: 800,
   arenaGrid: {
@@ -53,6 +55,12 @@ export const GAME_CONFIG = Object.freeze({
   costs: {
     infantry: 3,
   },
+  rarities: {
+    common: { label: 'COMUM', color: '#b7b7ae' },
+    rare: { label: 'RARA', color: '#5f91b8' },
+    epic: { label: 'ÉPICA', color: '#9a69b7' },
+    legendary: { label: 'LENDÁRIA', color: '#c89045' },
+  },
   unitTypes: {
     rifleman: { hp: 140, speed: 28, damage: 24, attackRange: 58, attackDelay: 0.9, aggroRange: 100, radius: 7, visual: 'rifleman' },
     grenadier: { hp: 115, speed: 24, damage: 44, attackRange: 54, attackDelay: 1.35, aggroRange: 96, radius: 7, splashRadius: 26, splashFactor: 0.65, visual: 'grenadier' },
@@ -63,16 +71,8 @@ export const GAME_CONFIG = Object.freeze({
     mortar: { hp: 105, speed: 17, damage: 58, attackRange: 92, attackDelay: 1.7, aggroRange: 122, radius: 8, splashRadius: 32, splashFactor: 0.6, visual: 'mortar' },
     assault: { hp: 155, speed: 34, damage: 29, attackRange: 34, attackDelay: 0.58, aggroRange: 96, radius: 7, visual: 'assault' },
   },
-  cards: [
-    { id: 'rifleman', name: 'FUZILEIRO', short: 'FUZ.', cost: 3, unitType: 'rifleman', accent: '#738454' },
-    { id: 'grenadier', name: 'GRANADEIRO', short: 'GRAN.', cost: 4, unitType: 'grenadier', accent: '#8a6e45' },
-    { id: 'scout', name: 'BATEDOR', short: 'BAT.', cost: 2, unitType: 'scout', accent: '#5f7e73' },
-    { id: 'machinegun', name: 'METRALHADOR', short: 'MET.', cost: 4, unitType: 'machinegun', accent: '#6d6658' },
-    { id: 'medic', name: 'MÉDICO', short: 'MED.', cost: 3, unitType: 'medic', accent: '#71806b' },
-    { id: 'engineer', name: 'ENGENHEIRO', short: 'ENG.', cost: 3, unitType: 'engineer', accent: '#8c7657' },
-    { id: 'mortar', name: 'MORTEIRO', short: 'MORT.', cost: 5, unitType: 'mortar', accent: '#5c665d' },
-    { id: 'assault', name: 'ASSALTO', short: 'ASS.', cost: 4, unitType: 'assault', accent: '#7d5f4e' },
-  ],
+  cards: CARD_CATALOG,
+  battleDeck: DEFAULT_BATTLE_DECK,
   teams: { PLAYER: 'player', ENEMY: 'enemy' },
   structures: [
     { id: 'enemy-hq', team: 'enemy', kind: 'hq', x: 180, y: 135, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
