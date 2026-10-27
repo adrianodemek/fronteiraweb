@@ -11,6 +11,13 @@ import {
   BANK_TILE_COUNT,
 } from '../assets/river/banks/top/sheet.js?v=0.6.6';
 import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.6';
+import {
+  ROCK_SHEET,
+  ROCK_FRAME_WIDTH,
+  ROCK_FRAME_HEIGHT,
+  ROCK_FRAME_COUNT,
+} from '../assets/river/rocks/sheet.js?v=0.6.6';
+import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.6';
 
 const WATER_FRAME_SECONDS = 0.12;
 const WATER_TILE_WIDTH = 64;
@@ -30,6 +37,7 @@ export class RiverRenderer {
     this.water = createImage(WATER_SHEET);
     this.topBank = createImage(TOP_BANK_SHEET);
     this.bottomBank = createImage(BOTTOM_BANK_SHEET);
+    this.rocks = createImage(ROCK_SHEET);
   }
 
   isReady(image) {
@@ -72,6 +80,7 @@ export class RiverRenderer {
     }
 
     this.drawBanks(ctx);
+    this.drawRocks(ctx);
     ctx.restore();
   }
 
@@ -112,6 +121,34 @@ export class RiverRenderer {
       }
     }
   }
+
+  drawRocks(ctx) {
+    if (!this.isReady(this.rocks)) return;
+
+    const { river } = this.config;
+
+    for (const rock of RIVER_ROCK_LAYOUT) {
+      const scale = rock.scale ?? 1;
+      const width = Math.max(1, Math.round(ROCK_FRAME_WIDTH * scale));
+      const height = Math.max(1, Math.round(ROCK_FRAME_HEIGHT * scale));
+      const x = Math.round(rock.x - width / 2);
+      const y = rock.side === 'top'
+        ? Math.round(river.top - height + 5)
+        : Math.round(river.bottom - 5);
+
+      ctx.drawImage(
+        this.rocks,
+        rock.frame * ROCK_FRAME_WIDTH,
+        0,
+        ROCK_FRAME_WIDTH,
+        ROCK_FRAME_HEIGHT,
+        x,
+        y,
+        width,
+        height,
+      );
+    }
+  }
 }
 
 export const RIVER_SPRITE_META = Object.freeze({
@@ -122,4 +159,6 @@ export const RIVER_SPRITE_META = Object.freeze({
   bankTiles: BANK_TILE_COUNT,
   bankSourceWidth: BANK_SOURCE_WIDTH,
   bankSourceHeight: BANK_SOURCE_HEIGHT,
+  rockFrames: ROCK_FRAME_COUNT,
+  rockCount: RIVER_ROCK_LAYOUT.length,
 });
