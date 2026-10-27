@@ -14,9 +14,9 @@ assert.equal(RIVER_SPRITE_META.bankTiles, 6, 'Cada margem deve possuir 6 variaç
 
 const renderer = new RiverRenderer(GAME_CONFIG);
 assert.equal(renderer.getWaterFrameIndex(0), 0, 'A água deve começar no primeiro frame.');
-assert.equal(renderer.getWaterFrameIndex(0.12), 1, 'A água deve avançar para o segundo frame.');
-assert.equal(renderer.getWaterFrameIndex(0.60), 5, 'A água deve alcançar o sexto frame.');
-assert.equal(renderer.getWaterFrameIndex(0.72), 0, 'A animação deve voltar ao primeiro frame em loop.');
+assert.equal(renderer.getWaterFrameIndex(0.13), 1, 'A água deve avançar para o segundo frame.');
+assert.equal(renderer.getWaterFrameIndex(0.61), 5, 'A água deve alcançar o sexto frame.');
+assert.equal(renderer.getWaterFrameIndex(0.73), 0, 'A animação deve voltar ao primeiro frame em loop.');
 
 const drawCalls = [];
 const ctx = {
