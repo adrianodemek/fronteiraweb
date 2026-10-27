@@ -3,23 +3,24 @@ import {
   WATER_FRAME_WIDTH,
   WATER_FRAME_HEIGHT,
   WATER_FRAME_COUNT,
-} from '../assets/river/water/sheet.js?v=0.6.7';
+} from '../assets/river/water/sheet.js?v=0.6.8';
 import {
   TOP_BANK_SHEET,
   BANK_SOURCE_WIDTH,
   BANK_SOURCE_HEIGHT,
   BANK_TILE_COUNT,
-} from '../assets/river/banks/top/sheet.js?v=0.6.7';
-import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.7';
+} from '../assets/river/banks/top/sheet.js?v=0.6.8';
+import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.8';
 import {
   ROCK_SHEET,
   ROCK_FRAME_WIDTH,
   ROCK_FRAME_HEIGHT,
   ROCK_FRAME_COUNT,
-} from '../assets/river/rocks/sheet.js?v=0.6.7';
-import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.7';
+} from '../assets/river/rocks/sheet.js?v=0.6.8';
+import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.8';
 
-const WATER_FRAME_SECONDS = 0.12;
+const WATER_FRAME_SECONDS = 0.22;
+const WATER_SCROLL_SPEED = 3;
 const WATER_TILE_WIDTH = 128;
 const BANK_TILE_WIDTH = 64;
 const BANK_TILE_HEIGHT = 16;
@@ -59,11 +60,10 @@ export class RiverRenderer {
 
     if (this.isReady(this.water)) {
       const frame = this.getWaterFrameIndex(time);
-      const scroll = Math.floor((Math.max(0, time) * 8) % WATER_TILE_WIDTH);
+      const scroll = Math.floor((Math.max(0, time) * WATER_SCROLL_SPEED) % WATER_TILE_WIDTH);
 
-      // Cada frame foi preparado como um tile 128x24 perfeitamente repetível
-      // (arte original + espelho horizontal). O scroll é discreto e o ciclo
-      // de 6 frames faz os reflexos percorrerem a água sem esticar o sprite.
+      // Movimento intencionalmente lento: o rio continua vivo, mas permanece
+      // como elemento de fundo e não compete visualmente com o combate.
       for (let x = -scroll; x < width + WATER_TILE_WIDTH; x += WATER_TILE_WIDTH) {
         ctx.drawImage(
           this.water,
@@ -162,6 +162,7 @@ export class RiverRenderer {
 export const RIVER_SPRITE_META = Object.freeze({
   waterFrames: WATER_FRAME_COUNT,
   waterFrameSeconds: WATER_FRAME_SECONDS,
+  waterScrollSpeed: WATER_SCROLL_SPEED,
   waterFrameWidth: WATER_FRAME_WIDTH,
   waterFrameHeight: WATER_FRAME_HEIGHT,
   waterTileWidth: WATER_TILE_WIDTH,
