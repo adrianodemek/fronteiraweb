@@ -1,7 +1,7 @@
-import { CARD_CATALOG, DEFAULT_BATTLE_DECK } from './data/cards.js?v=0.6.12';
+import { CARD_CATALOG, DEFAULT_BATTLE_DECK } from './data/cards.js?v=0.6.13';
 
 export const GAME_CONFIG = Object.freeze({
-  version: '0.6.12',
+  version: '0.6.13',
   width: 360,
   height: 800,
   arenaGrid: {
@@ -78,9 +78,9 @@ export const GAME_CONFIG = Object.freeze({
     { id: 'enemy-hq', team: 'enemy', kind: 'hq', x: 180, y: 135, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
     { id: 'enemy-left', team: 'enemy', kind: 'base', lane: 0, x: 76, y: 186, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
     { id: 'enemy-right', team: 'enemy', kind: 'base', lane: 1, x: 284, y: 186, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
-    { id: 'player-left', team: 'player', kind: 'base', lane: 0, x: 76, y: 492, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
-    { id: 'player-right', team: 'player', kind: 'base', lane: 1, x: 284, y: 492, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
-    { id: 'player-hq', team: 'player', kind: 'hq', x: 180, y: 544, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
+    { id: 'player-left', team: 'player', kind: 'base', lane: 0, x: 76, y: 522, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
+    { id: 'player-right', team: 'player', kind: 'base', lane: 1, x: 284, y: 522, hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
+    { id: 'player-hq', team: 'player', kind: 'hq', x: 180, y: 573, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
   ],
   infantry: { hp: 140, speed: 28, damage: 24, attackRange: 58, attackDelay: 0.9, aggroRange: 100, radius: 7, visual: 'rifleman' },
   palette: {
