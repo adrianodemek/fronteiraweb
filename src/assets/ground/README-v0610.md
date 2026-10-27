@@ -1,0 +1,1 @@
+A V0.6.10 substitui o chão uniforme da V0.6.9 por textura 16-bit derivada do preview aprovado. A textura base e as lanes são assets independentes para facilitar ajustes futuros.
