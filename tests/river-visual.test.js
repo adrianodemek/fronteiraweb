@@ -28,6 +28,9 @@ assert.equal(RIVER_SPRITE_META.bankOverlap, 4, 'Cada margem deve avançar soment
 assert.equal(RIVER_SPRITE_META.rockFrames, 4, 'A decoração deve possuir 4 sprites de pedra.');
 assert.equal(RIVER_SPRITE_META.rockCount, RIVER_ROCK_LAYOUT.length, 'O renderer deve usar o layout de pedras separado.');
 assert.ok(RIVER_ROCK_LAYOUT.length >= 8, 'O rio deve ter pedras fixas nas duas margens.');
+assert.equal(RIVER_SPRITE_META.blendSprites, 18, 'As duas margens devem receber vegetação de transição irregular.');
+assert.equal(RIVER_SPRITE_META.fringeStep, 8, 'A franja de grama/terra deve quebrar a linha reta da margem em passos curtos.');
+assert.equal(RIVER_SPRITE_META.bridgeBlendPadding, 12, 'A transição deve manter folga visual ao redor das pontes.');
 
 const riverHeight = GAME_CONFIG.river.bottom - GAME_CONFIG.river.top;
 const visibleWaterHeight = riverHeight - RIVER_SPRITE_META.bankOverlap * 2;
@@ -60,6 +63,10 @@ assert.equal(renderer.getWaterFrameIndex(0), 0, 'A água deve começar no primei
 assert.equal(renderer.getWaterFrameIndex(0.23), 1, 'A água deve avançar suavemente para o segundo frame.');
 assert.equal(renderer.getWaterFrameIndex(1.11), 5, 'A água deve alcançar o sexto frame.');
 assert.equal(renderer.getWaterFrameIndex(1.33), 0, 'A animação deve voltar ao primeiro frame em loop.');
+for (const bridgeX of GAME_CONFIG.bridges) {
+  assert.equal(renderer.isNearBridge(bridgeX), true, 'A área central da ponte deve permanecer livre de vegetação de transição.');
+}
+assert.equal(renderer.isNearBridge(180), false, 'A região central entre as pontes deve aceitar transição natural.');
 
 const drawCalls = [];
 const ctx = {
@@ -78,17 +85,18 @@ assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O chão 16-bit deve 
 
 drawCalls.length = 0;
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
-assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O fallback do rio deve desenhar água enquanto os sprites carregam.');
+assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O fallback do rio deve desenhar água e franja enquanto os sprites carregam.');
 
 renderer.water = { complete: true, naturalWidth: 768 };
 renderer.topBank = { complete: true, naturalWidth: 384 };
 renderer.bottomBank = { complete: true, naturalWidth: 384 };
 renderer.rocks = { complete: true, naturalWidth: 112 };
+renderer.groundDetails = { complete: true, naturalWidth: 216 };
 drawCalls.length = 0;
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
 assert.ok(
-  drawCalls.filter(([type]) => type === 'drawImage').length >= 20,
-  'O rio deve desenhar água animada, margens e pedras usando sprites reais.',
+  drawCalls.filter(([type]) => type === 'drawImage').length >= 30,
+  'O rio deve desenhar água, margens, pedras e vegetação de transição usando sprites reais.',
 );
 
 const battlefield = new Battlefield(GAME_CONFIG);
