@@ -3,26 +3,28 @@ import {
   WATER_FRAME_WIDTH,
   WATER_FRAME_HEIGHT,
   WATER_FRAME_COUNT,
-} from '../assets/river/water/sheet.js?v=0.6.6';
+} from '../assets/river/water/sheet.js?v=0.6.7';
 import {
   TOP_BANK_SHEET,
   BANK_SOURCE_WIDTH,
   BANK_SOURCE_HEIGHT,
   BANK_TILE_COUNT,
-} from '../assets/river/banks/top/sheet.js?v=0.6.6';
-import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.6';
+} from '../assets/river/banks/top/sheet.js?v=0.6.7';
+import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.7';
 import {
   ROCK_SHEET,
   ROCK_FRAME_WIDTH,
   ROCK_FRAME_HEIGHT,
   ROCK_FRAME_COUNT,
-} from '../assets/river/rocks/sheet.js?v=0.6.6';
-import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.6';
+} from '../assets/river/rocks/sheet.js?v=0.6.7';
+import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.7';
 
 const WATER_FRAME_SECONDS = 0.12;
-const WATER_TILE_WIDTH = 64;
+const WATER_TILE_WIDTH = 128;
 const BANK_TILE_WIDTH = 64;
-const BANK_TILE_HEIGHT = 32;
+const BANK_TILE_HEIGHT = 16;
+const BANK_OVERLAP = 4;
+const BANK_STEP = BANK_TILE_WIDTH - 1;
 
 function createImage(source) {
   if (typeof Image === 'undefined') return null;
@@ -57,9 +59,12 @@ export class RiverRenderer {
 
     if (this.isReady(this.water)) {
       const frame = this.getWaterFrameIndex(time);
-      const reflectionScroll = Math.floor((Math.max(0, time) * 10) % WATER_TILE_WIDTH);
+      const scroll = Math.floor((Math.max(0, time) * 8) % WATER_TILE_WIDTH);
 
-      for (let x = -WATER_TILE_WIDTH + reflectionScroll; x < width + WATER_TILE_WIDTH; x += WATER_TILE_WIDTH) {
+      // Cada frame foi preparado como um tile 128x24 perfeitamente repetível
+      // (arte original + espelho horizontal). O scroll é discreto e o ciclo
+      // de 6 frames faz os reflexos percorrerem a água sem esticar o sprite.
+      for (let x = -scroll; x < width + WATER_TILE_WIDTH; x += WATER_TILE_WIDTH) {
         ctx.drawImage(
           this.water,
           frame * WATER_FRAME_WIDTH,
@@ -73,9 +78,10 @@ export class RiverRenderer {
         );
       }
     } else {
+      // Apenas enquanto os PNGs terminam de carregar.
       ctx.fillStyle = palette.waterDark;
       ctx.fillRect(0, river.top, width, riverHeight);
-      ctx.fillStyle = palette.water;
+      ctx.fillStyle = '#176d91';
       ctx.fillRect(0, river.top + 2, width, Math.max(1, riverHeight - 4));
     }
 
@@ -86,9 +92,11 @@ export class RiverRenderer {
 
   drawBanks(ctx) {
     const { width, river } = this.config;
+    const topY = river.top - (BANK_TILE_HEIGHT - BANK_OVERLAP);
+    const bottomY = river.bottom - BANK_OVERLAP;
 
     if (this.isReady(this.topBank)) {
-      for (let x = 0, tile = 0; x < width; x += BANK_TILE_WIDTH, tile += 1) {
+      for (let x = 0, tile = 0; x < width; x += BANK_STEP, tile += 1) {
         const frame = tile % BANK_TILE_COUNT;
         ctx.drawImage(
           this.topBank,
@@ -97,7 +105,7 @@ export class RiverRenderer {
           BANK_SOURCE_WIDTH,
           BANK_SOURCE_HEIGHT,
           x,
-          river.top - 24,
+          topY,
           BANK_TILE_WIDTH,
           BANK_TILE_HEIGHT,
         );
@@ -105,7 +113,7 @@ export class RiverRenderer {
     }
 
     if (this.isReady(this.bottomBank)) {
-      for (let x = 0, tile = 0; x < width; x += BANK_TILE_WIDTH, tile += 1) {
+      for (let x = 0, tile = 0; x < width; x += BANK_STEP, tile += 1) {
         const frame = tile % BANK_TILE_COUNT;
         ctx.drawImage(
           this.bottomBank,
@@ -114,7 +122,7 @@ export class RiverRenderer {
           BANK_SOURCE_WIDTH,
           BANK_SOURCE_HEIGHT,
           x,
-          river.bottom - 8,
+          bottomY,
           BANK_TILE_WIDTH,
           BANK_TILE_HEIGHT,
         );
@@ -133,8 +141,8 @@ export class RiverRenderer {
       const height = Math.max(1, Math.round(ROCK_FRAME_HEIGHT * scale));
       const x = Math.round(rock.x - width / 2);
       const y = rock.side === 'top'
-        ? Math.round(river.top - height + 5)
-        : Math.round(river.bottom - 5);
+        ? Math.round(river.top - height + 2)
+        : Math.round(river.bottom - 2);
 
       ctx.drawImage(
         this.rocks,
@@ -156,9 +164,12 @@ export const RIVER_SPRITE_META = Object.freeze({
   waterFrameSeconds: WATER_FRAME_SECONDS,
   waterFrameWidth: WATER_FRAME_WIDTH,
   waterFrameHeight: WATER_FRAME_HEIGHT,
+  waterTileWidth: WATER_TILE_WIDTH,
   bankTiles: BANK_TILE_COUNT,
   bankSourceWidth: BANK_SOURCE_WIDTH,
   bankSourceHeight: BANK_SOURCE_HEIGHT,
+  bankTileHeight: BANK_TILE_HEIGHT,
+  bankOverlap: BANK_OVERLAP,
   rockFrames: ROCK_FRAME_COUNT,
   rockCount: RIVER_ROCK_LAYOUT.length,
 });
