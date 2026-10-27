@@ -1,6 +1,6 @@
-import { Game } from './Game.js?v=0.5.1';
-import { Unit } from '../entities/Unit.js?v=0.5.1';
-import { clamp } from '../utils/math.js?v=0.5.1';
+import { Game } from './Game.js?v=0.6.0';
+import { Unit } from '../entities/Unit.js?v=0.6.0';
+import { clamp } from '../utils/math.js?v=0.6.0';
 
 export class BattleGame extends Game {
   spawnUnit(team, lane, x, y, unitType = 'rifleman') {
