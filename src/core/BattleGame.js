@@ -1,5 +1,5 @@
-import { Game } from './GameRuntime.js?v=0.6.25';
-import { GAME_CONFIG } from '../configRuntime.js?v=0.6.25';
+import { Game } from './GameRuntime.js?v=0.6.26';
+import { GAME_CONFIG } from '../configRuntime.js?v=0.6.26';
 import { Battlefield } from '../world/Battlefield.js?v=0.6.18';
 import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.11';
 import { clamp } from '../utils/math.js?v=0.6.11';
@@ -21,22 +21,13 @@ export class BattleGame extends Game {
     const stats = unitTypes[unitType] ?? unitTypes.rifleman ?? this.config.infantry;
     if (!stats) return false;
 
-    this.units.push(new BattleUnit({
-      team,
-      lane,
-      x,
-      y,
-      type: unitType,
-      stats,
-      config: this.config,
-    }));
+    this.units.push(new BattleUnit({ team, lane, x, y, type: unitType, stats, config: this.config }));
     return true;
   }
 
   tryDeployUnit(team, x, y, cost = this.config.costs.infantry, unitType = 'rifleman') {
     if (this.state !== 'playing') return false;
     if (!this.deployment.isDeployAllowed(team, x, y, this.structures)) return false;
-
     if (!this.supplies.canSpend(team, cost)) {
       if (team === 'player') this.resourceDeniedFlash = 0.3;
       return false;
@@ -46,7 +37,6 @@ export class BattleGame extends Game {
     const { edgeMargin } = this.config.deployment;
     const spawnX = clamp(x, edgeMargin, this.config.width - edgeMargin);
     const spawnY = clamp(y, this.config.battlefield.top + edgeMargin, this.config.battlefield.bottom - edgeMargin);
-
     const spawned = this.spawnUnit(team, lane, spawnX, spawnY, unitType);
     if (!spawned) return false;
 
@@ -56,7 +46,6 @@ export class BattleGame extends Game {
 
   handlePointerDown(event) {
     event.preventDefault();
-
     if (this.state === 'finished') {
       this.reset();
       return;
@@ -74,7 +63,6 @@ export class BattleGame extends Game {
 
     const card = this.cards.selectedCard;
     if (!card) return;
-
     const deployed = this.tryDeployUnit('player', x, y, card.cost, card.unitType ?? 'rifleman');
     if (deployed) this.cards.playSelected();
   }
