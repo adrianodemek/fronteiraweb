@@ -13,6 +13,8 @@ assert.ok(TOP_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem superio
 assert.ok(BOTTOM_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem inferior deve usar sprites reais.');
 assert.ok(ROCK_SHEET.startsWith('data:image/png;base64,'), 'As pedras devem usar a folha PNG real em 16-bit.');
 assert.equal(RIVER_SPRITE_META.waterFrames, 6, 'A animação da água deve possuir 6 frames.');
+assert.equal(RIVER_SPRITE_META.waterFrameSeconds, 0.22, 'A troca de frames deve ser suave e discreta.');
+assert.equal(RIVER_SPRITE_META.waterScrollSpeed, 3, 'O reflexo horizontal deve se mover lentamente.');
 assert.equal(RIVER_SPRITE_META.waterFrameWidth, 128, 'A água não pode ser esmagada horizontalmente em tiles pequenos.');
 assert.equal(RIVER_SPRITE_META.waterFrameHeight, 24, 'O frame da água deve preservar toda a altura do rio.');
 assert.equal(RIVER_SPRITE_META.bankTiles, 6, 'Cada margem deve possuir 6 variações fixas.');
@@ -41,9 +43,10 @@ for (const rock of RIVER_ROCK_LAYOUT) {
 
 const renderer = new RiverRenderer(GAME_CONFIG);
 assert.equal(renderer.getWaterFrameIndex(0), 0, 'A água deve começar no primeiro frame.');
-assert.equal(renderer.getWaterFrameIndex(0.13), 1, 'A água deve avançar para o segundo frame.');
-assert.equal(renderer.getWaterFrameIndex(0.61), 5, 'A água deve alcançar o sexto frame.');
-assert.equal(renderer.getWaterFrameIndex(0.73), 0, 'A animação deve voltar ao primeiro frame em loop.');
+assert.equal(renderer.getWaterFrameIndex(0.21), 0, 'O primeiro frame deve permanecer tempo suficiente para evitar agitação.');
+assert.equal(renderer.getWaterFrameIndex(0.23), 1, 'A água deve avançar suavemente para o segundo frame.');
+assert.equal(renderer.getWaterFrameIndex(1.11), 5, 'A água deve alcançar o sexto frame sem acelerar.');
+assert.equal(renderer.getWaterFrameIndex(1.33), 0, 'A animação deve voltar ao primeiro frame em loop suave.');
 
 const drawCalls = [];
 const ctx = {
