@@ -25,6 +25,12 @@ export class Structure {
     this.flash = 0.08;
   }
 
+  getSurfaceDistanceTo(unit) {
+    const centerDistance = distance(this, unit);
+    const targetRadius = unit.radius ?? 0;
+    return Math.max(0, centerDistance - this.hitRadius - targetRadius);
+  }
+
   update(dt, units) {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.flash = Math.max(0, this.flash - dt);
@@ -32,13 +38,16 @@ export class Structure {
     if (this.kind === 'hq' && !this.active) return;
 
     let target = null;
-    let bestDistance = Infinity;
+    let bestSurfaceDistance = Infinity;
 
     for (const unit of units) {
       if (!unit.alive || unit.team === this.team) continue;
-      const d = distance(this, unit);
-      if (d <= this.range && d < bestDistance) {
-        bestDistance = d;
+
+      // O alcance das construções agora usa a mesma referência das tropas:
+      // distância útil entre as bordas, não apenas centro a centro.
+      const surfaceDistance = this.getSurfaceDistanceTo(unit);
+      if (surfaceDistance <= this.range && surfaceDistance < bestSurfaceDistance) {
+        bestSurfaceDistance = surfaceDistance;
         target = unit;
       }
     }
