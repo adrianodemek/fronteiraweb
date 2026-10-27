@@ -4,13 +4,31 @@ import { RiverRenderer, RIVER_SPRITE_META } from '../src/world/RiverRenderer.js'
 import { WATER_SHEET } from '../src/assets/river/water/sheet.js';
 import { TOP_BANK_SHEET } from '../src/assets/river/banks/top/sheet.js';
 import { BOTTOM_BANK_SHEET } from '../src/assets/river/banks/bottom/sheet.js';
+import { ROCK_SHEET, ROCK_FRAME_WIDTH } from '../src/assets/river/rocks/sheet.js';
+import { RIVER_ROCK_LAYOUT } from '../src/assets/river/rocks/layout.js';
 import { GAME_CONFIG } from '../src/config.js';
 
 assert.ok(WATER_SHEET.startsWith('data:image/png;base64,'), 'A água deve usar a folha PNG real em 16-bit.');
 assert.ok(TOP_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem superior deve usar sprites reais.');
 assert.ok(BOTTOM_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem inferior deve usar sprites reais.');
+assert.ok(ROCK_SHEET.startsWith('data:image/png;base64,'), 'As pedras devem usar a folha PNG real em 16-bit.');
 assert.equal(RIVER_SPRITE_META.waterFrames, 6, 'A animação da água deve possuir 6 frames.');
 assert.equal(RIVER_SPRITE_META.bankTiles, 6, 'Cada margem deve possuir 6 variações fixas.');
+assert.equal(RIVER_SPRITE_META.rockFrames, 4, 'A decoração deve possuir 4 sprites de pedra.');
+assert.equal(RIVER_SPRITE_META.rockCount, RIVER_ROCK_LAYOUT.length, 'O renderer deve usar o layout de pedras separado.');
+assert.ok(RIVER_ROCK_LAYOUT.length >= 8, 'O rio deve ter pedras fixas nas duas margens.');
+
+for (const rock of RIVER_ROCK_LAYOUT) {
+  assert.ok(rock.side === 'top' || rock.side === 'bottom', 'Cada pedra deve indicar a margem em que fica.');
+  const halfWidth = (ROCK_FRAME_WIDTH * (rock.scale ?? 1)) / 2;
+  for (const bridgeX of GAME_CONFIG.bridges) {
+    const bridgeHalf = GAME_CONFIG.bridgeWidth / 2;
+    assert.ok(
+      Math.abs(rock.x - bridgeX) > bridgeHalf + halfWidth,
+      `A pedra em x=${rock.x} invade visualmente a ponte em x=${bridgeX}.`,
+    );
+  }
+}
 
 const renderer = new RiverRenderer(GAME_CONFIG);
 assert.equal(renderer.getWaterFrameIndex(0), 0, 'A água deve começar no primeiro frame.');
@@ -29,19 +47,18 @@ const ctx = {
   drawImage(...args) { drawCalls.push(['drawImage', ...args]); },
 };
 
-// Node não possui Image. O fallback precisa renderizar sem quebrar.
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
 assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O fallback do rio deve desenhar água enquanto os sprites carregam.');
 
-// Simula as três folhas carregadas e garante que o caminho visual usa sprites.
 renderer.water = { complete: true, naturalWidth: 384 };
 renderer.topBank = { complete: true, naturalWidth: 192 };
 renderer.bottomBank = { complete: true, naturalWidth: 192 };
+renderer.rocks = { complete: true, naturalWidth: 112 };
 drawCalls.length = 0;
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
 assert.ok(
-  drawCalls.filter(([type]) => type === 'drawImage').length >= 14,
-  'O rio deve desenhar água animada e as duas margens usando sprites.',
+  drawCalls.filter(([type]) => type === 'drawImage').length >= 28,
+  'O rio deve desenhar água animada, margens e pedras usando sprites reais.',
 );
 
 const battlefield = new Battlefield(GAME_CONFIG);
