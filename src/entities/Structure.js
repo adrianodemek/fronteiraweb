@@ -1,13 +1,13 @@
 import { distance } from '../utils/math.js';
 
-const HQ_WIDTH = 84;
-const HQ_HEIGHT = 56;
+const HQ_WIDTH = 120;
+const HQ_HEIGHT = 75;
 const HQ_CANNON_MOUNT_OFFSET_X = 0;
 const HQ_CANNON_MOUNT_OFFSET_Y = -10;
 
 export const HQ_ASSET_PATHS = Object.freeze({
-  front: new URL('../assets/structures/hq/hq_front.png?v=0.6.20', import.meta.url).href,
-  back: new URL('../assets/structures/hq/hq_back.png?v=0.6.20', import.meta.url).href,
+  front: new URL('../assets/structures/hq/hq_front.png?v=0.6.21', import.meta.url).href,
+  back: new URL('../assets/structures/hq/hq_back.png?v=0.6.21', import.meta.url).href,
 });
 
 function createSprite(src) {
