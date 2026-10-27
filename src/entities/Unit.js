@@ -1,4 +1,4 @@
-import { distance, moveToward } from '../utils/math.js?v=0.6.1';
+import { distance, moveToward } from '../utils/math.js?v=0.6.2';
 
 export class Unit {
   constructor({ team, x, y, lane, stats, config, type = 'rifleman' }) {
@@ -139,8 +139,6 @@ export class Unit {
   }
 
   separateFromStructures(structures) {
-    // Duas passagens resolvem inclusive casos raros em que duas áreas sólidas
-    // se encostam. A unidade sempre termina fora do volume físico da construção.
     for (let pass = 0; pass < 2; pass += 1) {
       for (const structure of structures) {
         const clearance = this.getStructureClearance(structure);
@@ -185,23 +183,22 @@ export class Unit {
 
     const nx = dx / length;
     const ny = dy / length;
-    const lookAhead = Math.min(length, Math.max(34, this.speed * 0.9));
+    const lookAhead = Math.min(length, Math.max(76, this.speed * 2.4));
     const endX = this.x + nx * lookAhead;
     const endY = this.y + ny * lookAhead;
     let blocker = null;
     let blockerForwardDistance = Infinity;
 
     for (const structure of structures) {
-      // O alvo principal não deve ser contornado: a distância de ataque já
-      // inclui o volume físico dele e impede que a unidade entre na construção.
       if (structure === target) continue;
 
       const toObstacleX = structure.x - this.x;
       const toObstacleY = structure.y - this.y;
       const forward = toObstacleX * nx + toObstacleY * ny;
       const clearance = this.getStructureClearance(structure);
+      const anticipation = clearance + 38;
 
-      if (forward < -clearance || forward > lookAhead + clearance) continue;
+      if (forward < -clearance || forward > lookAhead + anticipation) continue;
 
       const pathDistance = this.distanceToSegment(
         structure,
@@ -211,7 +208,7 @@ export class Unit {
         endY,
       );
 
-      if (pathDistance <= clearance + 2 && forward < blockerForwardDistance) {
+      if (pathDistance <= clearance + 10 && forward < blockerForwardDistance) {
         blocker = structure;
         blockerForwardDistance = forward;
       }
@@ -230,7 +227,7 @@ export class Unit {
     const ny = dy / length;
     const px = -ny;
     const py = nx;
-    const clearance = this.getStructureClearance(blocker) + 7;
+    const clearance = this.getStructureClearance(blocker) + 12;
     const margin = this.config.deployment?.edgeMargin ?? 10;
 
     const scoreSide = (side) => {
@@ -253,7 +250,6 @@ export class Unit {
     let side;
 
     if (Math.abs(leftScore - rightScore) < 0.01) {
-      // Desempate estável por lane para impedir troca de lado a cada frame.
       side = this.lane === 0 ? -1 : 1;
     } else {
       side = leftScore < rightScore ? 1 : -1;
@@ -278,11 +274,16 @@ export class Unit {
     const px = -ny;
     const py = nx;
     const side = this.chooseAvoidanceSide(blocker, goal);
-    const clearance = this.getStructureClearance(blocker) + 7;
+    const clearance = this.getStructureClearance(blocker);
+    const lateralOffset = clearance + 12;
+    const forwardOffset = Math.max(38, clearance * 1.15);
 
+    // O waypoint fica depois da construção, não ao lado dela. Isso faz a
+    // unidade abrir a curva antes de encostar e atravessar o contorno em um
+    // único movimento contínuo, sem "parar para decidir" na colisão.
     return {
-      x: blocker.x + px * clearance * side + nx * 9,
-      y: blocker.y + py * clearance * side + ny * 9,
+      x: blocker.x + px * lateralOffset * side + nx * forwardOffset,
+      y: blocker.y + py * lateralOffset * side + ny * forwardOffset,
     };
   }
 
@@ -318,8 +319,6 @@ export class Unit {
     const target = enemyUnit ?? this.getEnemyStructure(structures);
     if (!target) return;
 
-    // O raio da própria unidade entra no alcance físico. Assim ela ataca da
-    // borda da construção e nunca precisa invadir o volume sólido do alvo.
     const reach = this.attackRange + this.radius + (target.hitRadius ?? target.radius ?? 0);
     const d = distance(this, target);
 
