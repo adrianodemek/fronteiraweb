@@ -3,21 +3,21 @@ import {
   WATER_FRAME_WIDTH,
   WATER_FRAME_HEIGHT,
   WATER_FRAME_COUNT,
-} from '../assets/river/water/sheet.js?v=0.6.8';
+} from '../assets/river/water/sheet.js?v=0.6.9';
 import {
   TOP_BANK_SHEET,
   BANK_SOURCE_WIDTH,
   BANK_SOURCE_HEIGHT,
   BANK_TILE_COUNT,
-} from '../assets/river/banks/top/sheet.js?v=0.6.8';
-import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.8';
+} from '../assets/river/banks/top/sheet.js?v=0.6.9';
+import { BOTTOM_BANK_SHEET } from '../assets/river/banks/bottom/sheet.js?v=0.6.9';
 import {
   ROCK_SHEET,
   ROCK_FRAME_WIDTH,
   ROCK_FRAME_HEIGHT,
   ROCK_FRAME_COUNT,
-} from '../assets/river/rocks/sheet.js?v=0.6.8';
-import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.8';
+} from '../assets/river/rocks/sheet.js?v=0.6.9';
+import { RIVER_ROCK_LAYOUT } from '../assets/river/rocks/layout.js?v=0.6.9';
 
 const WATER_FRAME_SECONDS = 0.22;
 const WATER_SCROLL_SPEED = 3;
@@ -78,7 +78,6 @@ export class RiverRenderer {
         );
       }
     } else {
-      // Apenas enquanto os PNGs terminam de carregar.
       ctx.fillStyle = palette.waterDark;
       ctx.fillRect(0, river.top, width, riverHeight);
       ctx.fillStyle = '#176d91';
