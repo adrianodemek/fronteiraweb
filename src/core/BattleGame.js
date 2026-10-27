@@ -1,16 +1,17 @@
 import { Game } from './Game.js?v=0.6.0';
-import { GAME_CONFIG } from '../config.js?v=0.6.4';
-import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.4';
-import { clamp } from '../utils/math.js?v=0.6.4';
+import { GAME_CONFIG } from '../config.js?v=0.6.5';
+import { Battlefield } from '../world/Battlefield.js?v=0.6.5';
+import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.5';
+import { clamp } from '../utils/math.js?v=0.6.5';
 
 export class BattleGame extends Game {
   constructor(canvas) {
     super(canvas);
 
-    // Garante que a versão jogável use sempre a configuração fresca desta
-    // release, mesmo se o navegador ainda tiver o Game base em cache.
+    // Garante que a versão jogável use sempre a configuração e o renderer
+    // frescos desta release, mesmo se o navegador ainda tiver o Game base em cache.
     this.config = GAME_CONFIG;
-    this.battlefield.config = GAME_CONFIG;
+    this.battlefield = new Battlefield(GAME_CONFIG);
     this.deployment.config = GAME_CONFIG;
     this.supplies.config = GAME_CONFIG;
     this.cards.config = GAME_CONFIG;
