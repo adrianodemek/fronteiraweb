@@ -1,20 +1,30 @@
 import {
-  GROUND_TEXTURE_URL,
-  GROUND_FRAME_WIDTH,
-  GROUND_FRAME_HEIGHT,
-  GROUND_FRAME_COUNT,
-} from '../assets/ground/base/manifest.js?v=0.6.10';
+  GRASS_ATLAS_URL,
+  GRASS_TILE_WIDTH,
+  GRASS_TILE_HEIGHT,
+  GRASS_TILE_COLUMNS,
+  GRASS_TILE_COUNT,
+} from '../assets/ground/grass/manifest.js?v=0.6.11';
 import {
-  GROUND_LANE_URL,
-  LANE_FRAME_WIDTH,
-  LANE_FRAME_HEIGHT,
-  LANE_FRAME_COUNT,
-} from '../assets/ground/lane/manifest.js?v=0.6.10';
+  PATH_ATLAS_URL,
+  PATH_TILE_WIDTH,
+  PATH_TILE_HEIGHT,
+  PATH_TILE_COLUMNS,
+  PATH_TILE_COUNT,
+} from '../assets/ground/paths/manifest.js?v=0.6.11';
+import {
+  DETAIL_ATLAS_URL,
+  DETAIL_TILE_WIDTH,
+  DETAIL_TILE_HEIGHT,
+  DETAIL_TILE_COLUMNS,
+  DETAIL_TILE_COUNT,
+} from '../assets/ground/details/manifest.js?v=0.6.11';
+import { GROUND_DETAIL_LAYOUT } from '../assets/ground/details/layout.js?v=0.6.11';
 
-const GROUND_DRAW_WIDTH = 360;
-const GROUND_DRAW_HEIGHT = 256;
-const LANE_DRAW_WIDTH = 20;
-const LANE_DRAW_HEIGHT = 64;
+const GRASS_DRAW_SIZE = 64;
+const PATH_DRAW_WIDTH = 48;
+const PATH_DRAW_HEIGHT = 96;
+const PATH_OFFSETS = [-4, 0, 3, -2, 2, 0];
 
 function createImage(source) {
   if (typeof Image === 'undefined') return null;
@@ -23,11 +33,21 @@ function createImage(source) {
   return image;
 }
 
+function getAtlasRect(frame, columns, tileWidth, tileHeight) {
+  return {
+    sx: (frame % columns) * tileWidth,
+    sy: Math.floor(frame / columns) * tileHeight,
+    sw: tileWidth,
+    sh: tileHeight,
+  };
+}
+
 export class GroundRenderer {
   constructor(config) {
     this.config = config;
-    this.ground = createImage(GROUND_TEXTURE_URL);
-    this.lanes = createImage(GROUND_LANE_URL);
+    this.grass = createImage(GRASS_ATLAS_URL);
+    this.paths = createImage(PATH_ATLAS_URL);
+    this.details = createImage(DETAIL_ATLAS_URL);
   }
 
   isReady(image) {
@@ -40,85 +60,117 @@ export class GroundRenderer {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    if (!this.isReady(this.ground)) {
+    if (!this.isReady(this.grass)) {
       ctx.fillStyle = palette.grass;
       ctx.fillRect(0, battlefield.top, width, battlefield.bottom - battlefield.top);
       ctx.restore();
       return;
     }
 
-    this.drawBase(ctx);
-    this.drawLanes(ctx);
+    this.drawGrass(ctx);
+    this.drawDetails(ctx);
+    this.drawPaths(ctx);
     ctx.restore();
   }
 
-  drawBase(ctx) {
+  drawGrass(ctx) {
     const { width, battlefield } = this.config;
 
-    for (let y = battlefield.top, row = 0; y < battlefield.bottom; y += GROUND_DRAW_HEIGHT, row += 1) {
-      const frame = row % GROUND_FRAME_COUNT;
-      const remaining = battlefield.bottom - y;
-      const drawHeight = Math.min(GROUND_DRAW_HEIGHT, remaining);
-      const sourceHeight = Math.max(1, Math.ceil((drawHeight / GROUND_DRAW_HEIGHT) * GROUND_FRAME_HEIGHT));
+    for (let y = battlefield.top, row = 0; y < battlefield.bottom; y += GRASS_DRAW_SIZE, row += 1) {
+      for (let x = 0, column = 0; x < width; x += GRASS_DRAW_SIZE, column += 1) {
+        const frame = (column * 7 + row * 11 + ((column + row) % 3) * 5) % GRASS_TILE_COUNT;
+        const { sx, sy } = getAtlasRect(frame, GRASS_TILE_COLUMNS, GRASS_TILE_WIDTH, GRASS_TILE_HEIGHT);
+        const drawWidth = Math.min(GRASS_DRAW_SIZE, width - x);
+        const drawHeight = Math.min(GRASS_DRAW_SIZE, battlefield.bottom - y);
+        const sourceWidth = Math.max(1, Math.ceil((drawWidth / GRASS_DRAW_SIZE) * GRASS_TILE_WIDTH));
+        const sourceHeight = Math.max(1, Math.ceil((drawHeight / GRASS_DRAW_SIZE) * GRASS_TILE_HEIGHT));
+
+        ctx.drawImage(
+          this.grass,
+          sx,
+          sy,
+          sourceWidth,
+          sourceHeight,
+          x,
+          y,
+          drawWidth + 1,
+          drawHeight + 1,
+        );
+      }
+    }
+  }
+
+  drawDetails(ctx) {
+    if (!this.isReady(this.details)) return;
+
+    for (const detail of GROUND_DETAIL_LAYOUT) {
+      const frame = detail.frame % DETAIL_TILE_COUNT;
+      const { sx, sy } = getAtlasRect(frame, DETAIL_TILE_COLUMNS, DETAIL_TILE_WIDTH, DETAIL_TILE_HEIGHT);
+      const size = detail.size;
 
       ctx.drawImage(
-        this.ground,
-        frame * GROUND_FRAME_WIDTH,
-        0,
-        GROUND_FRAME_WIDTH,
-        sourceHeight,
-        0,
-        y,
-        width,
-        drawHeight,
+        this.details,
+        sx,
+        sy,
+        DETAIL_TILE_WIDTH,
+        DETAIL_TILE_HEIGHT,
+        Math.round(detail.x - size / 2),
+        Math.round(detail.y - size / 2),
+        size,
+        size,
       );
     }
   }
 
-  drawLanes(ctx) {
-    if (!this.isReady(this.lanes)) return;
+  drawPaths(ctx) {
+    if (!this.isReady(this.paths)) return;
 
     const { battlefield, river, bridges } = this.config;
 
     for (let lane = 0; lane < bridges.length; lane += 1) {
       const centerX = bridges[lane];
-      const x = Math.round(centerX - LANE_DRAW_WIDTH / 2);
-
-      this.drawLaneSection(ctx, lane, x, battlefield.top + 72, river.top);
-      this.drawLaneSection(ctx, lane + 1, x, river.bottom, battlefield.bottom - 76);
+      this.drawPathSection(ctx, lane * 3, centerX, battlefield.top + 48, river.top);
+      this.drawPathSection(ctx, lane * 3 + 2, centerX, river.bottom, battlefield.bottom - 28);
     }
   }
 
-  drawLaneSection(ctx, seed, x, startY, endY) {
-    for (let y = startY, segment = 0; y < endY; y += LANE_DRAW_HEIGHT, segment += 1) {
-      const frame = (seed + segment) % LANE_FRAME_COUNT;
+  drawPathSection(ctx, seed, centerX, startY, endY) {
+    for (let y = startY, segment = 0; y < endY; y += PATH_DRAW_HEIGHT, segment += 1) {
+      const frame = (seed + segment * 5) % PATH_TILE_COUNT;
+      const { sx, sy } = getAtlasRect(frame, PATH_TILE_COLUMNS, PATH_TILE_WIDTH, PATH_TILE_HEIGHT);
       const remaining = endY - y;
-      const drawHeight = Math.min(LANE_DRAW_HEIGHT, remaining);
-      const sourceHeight = Math.max(1, Math.ceil((drawHeight / LANE_DRAW_HEIGHT) * LANE_FRAME_HEIGHT));
+      const drawHeight = Math.min(PATH_DRAW_HEIGHT, remaining);
+      const sourceHeight = Math.max(1, Math.ceil((drawHeight / PATH_DRAW_HEIGHT) * PATH_TILE_HEIGHT));
+      const offset = PATH_OFFSETS[(segment + seed) % PATH_OFFSETS.length];
+      const x = Math.round(centerX - PATH_DRAW_WIDTH / 2 + offset);
 
       ctx.drawImage(
-        this.lanes,
-        frame * LANE_FRAME_WIDTH,
-        0,
-        LANE_FRAME_WIDTH,
+        this.paths,
+        sx,
+        sy,
+        PATH_TILE_WIDTH,
         sourceHeight,
         x,
         y,
-        LANE_DRAW_WIDTH,
-        drawHeight,
+        PATH_DRAW_WIDTH,
+        drawHeight + 1,
       );
     }
   }
 }
 
 export const GROUND_SPRITE_META = Object.freeze({
-  groundFrames: GROUND_FRAME_COUNT,
-  groundFrameWidth: GROUND_FRAME_WIDTH,
-  groundFrameHeight: GROUND_FRAME_HEIGHT,
-  groundDrawWidth: GROUND_DRAW_WIDTH,
-  groundDrawHeight: GROUND_DRAW_HEIGHT,
-  laneFrames: LANE_FRAME_COUNT,
-  laneFrameWidth: LANE_FRAME_WIDTH,
-  laneFrameHeight: LANE_FRAME_HEIGHT,
-  laneDrawWidth: LANE_DRAW_WIDTH,
+  grassTiles: GRASS_TILE_COUNT,
+  grassTileWidth: GRASS_TILE_WIDTH,
+  grassTileHeight: GRASS_TILE_HEIGHT,
+  grassDrawSize: GRASS_DRAW_SIZE,
+  pathTiles: PATH_TILE_COUNT,
+  pathTileWidth: PATH_TILE_WIDTH,
+  pathTileHeight: PATH_TILE_HEIGHT,
+  pathDrawWidth: PATH_DRAW_WIDTH,
+  pathDrawHeight: PATH_DRAW_HEIGHT,
+  detailTiles: DETAIL_TILE_COUNT,
+  detailTileWidth: DETAIL_TILE_WIDTH,
+  detailTileHeight: DETAIL_TILE_HEIGHT,
+  details: GROUND_DETAIL_LAYOUT.length,
 });
