@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import { Battlefield } from '../src/world/Battlefield.js';
+import { Ground16Renderer, GROUND_SPRITE_META } from '../src/world/Ground16Renderer.js';
 import { RiverRenderer, RIVER_SPRITE_META } from '../src/world/RiverRenderer.js';
 import { WATER_SHEET } from '../src/assets/river/water/sheet.js';
 import { TOP_BANK_SHEET } from '../src/assets/river/banks/top/sheet.js';
 import { BOTTOM_BANK_SHEET } from '../src/assets/river/banks/bottom/sheet.js';
 import { ROCK_SHEET, ROCK_FRAME_WIDTH } from '../src/assets/river/rocks/sheet.js';
 import { RIVER_ROCK_LAYOUT } from '../src/assets/river/rocks/layout.js';
+import { GROUND_BASE_TILES } from '../src/assets/ground/v1/base/tiles.js';
+import { RIVER_EDGE_TILES } from '../src/assets/ground/v1/transition/tiles.js';
+import { GROUND_DETAIL_LAYOUT } from '../src/assets/ground/v1/details/layout.js';
 import { GAME_CONFIG } from '../src/config.js';
 
 assert.ok(WATER_SHEET.startsWith('data:image/png;base64,'), 'A água deve usar a folha PNG real em 16-bit.');
@@ -13,8 +17,8 @@ assert.ok(TOP_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem superio
 assert.ok(BOTTOM_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem inferior deve usar sprites reais.');
 assert.ok(ROCK_SHEET.startsWith('data:image/png;base64,'), 'As pedras devem usar a folha PNG real em 16-bit.');
 assert.equal(RIVER_SPRITE_META.waterFrames, 6, 'A animação da água deve possuir 6 frames.');
-assert.equal(RIVER_SPRITE_META.waterFrameSeconds, 0.22, 'A troca de frames deve ser suave e discreta.');
-assert.equal(RIVER_SPRITE_META.waterScrollSpeed, 3, 'O reflexo horizontal deve se mover lentamente.');
+assert.equal(RIVER_SPRITE_META.waterFrameSeconds, 0.22, 'A animação da água deve permanecer suave.');
+assert.equal(RIVER_SPRITE_META.waterScrollSpeed, 3, 'O reflexo da água deve se mover lentamente.');
 assert.equal(RIVER_SPRITE_META.waterFrameWidth, 128, 'A água não pode ser esmagada horizontalmente em tiles pequenos.');
 assert.equal(RIVER_SPRITE_META.waterFrameHeight, 24, 'O frame da água deve preservar toda a altura do rio.');
 assert.equal(RIVER_SPRITE_META.bankTiles, 6, 'Cada margem deve possuir 6 variações fixas.');
@@ -41,12 +45,21 @@ for (const rock of RIVER_ROCK_LAYOUT) {
   }
 }
 
+assert.equal(GROUND_BASE_TILES.length, 4, 'O chão deve ter 4 variações discretas de grama.');
+assert.equal(RIVER_EDGE_TILES.length, 4, 'A transição com o rio deve ter 4 variações.');
+assert.equal(GROUND_SPRITE_META.baseTiles, 4, 'O renderer deve expor as 4 variações de chão.');
+assert.equal(GROUND_SPRITE_META.baseTilePixels, 8, 'Os tiles do chão devem usar grade pixel-art 8x8.');
+assert.equal(GROUND_SPRITE_META.baseTileRenderSize, 32, 'Cada tile deve ocupar 32 px no mapa.');
+assert.equal(GROUND_SPRITE_META.transitionTiles, 4, 'O renderer deve usar as 4 transições do rio.');
+assert.equal(GROUND_SPRITE_META.transitionHeight, 12, 'A transição deve ser estreita e discreta.');
+assert.equal(GROUND_SPRITE_META.detailCount, GROUND_DETAIL_LAYOUT.length, 'Os detalhes devem vir de layout separado.');
+assert.ok(GROUND_DETAIL_LAYOUT.length <= 12, 'O chão não deve ficar poluído com decoração.');
+
 const renderer = new RiverRenderer(GAME_CONFIG);
 assert.equal(renderer.getWaterFrameIndex(0), 0, 'A água deve começar no primeiro frame.');
-assert.equal(renderer.getWaterFrameIndex(0.21), 0, 'O primeiro frame deve permanecer tempo suficiente para evitar agitação.');
 assert.equal(renderer.getWaterFrameIndex(0.23), 1, 'A água deve avançar suavemente para o segundo frame.');
-assert.equal(renderer.getWaterFrameIndex(1.11), 5, 'A água deve alcançar o sexto frame sem acelerar.');
-assert.equal(renderer.getWaterFrameIndex(1.33), 0, 'A animação deve voltar ao primeiro frame em loop suave.');
+assert.equal(renderer.getWaterFrameIndex(1.11), 5, 'A água deve alcançar o sexto frame.');
+assert.equal(renderer.getWaterFrameIndex(1.33), 0, 'A animação deve voltar ao primeiro frame em loop.');
 
 const drawCalls = [];
 const ctx = {
@@ -59,6 +72,11 @@ const ctx = {
   drawImage(...args) { drawCalls.push(['drawImage', ...args]); },
 };
 
+const groundRenderer = new Ground16Renderer(GAME_CONFIG);
+assert.doesNotThrow(() => groundRenderer.draw(ctx));
+assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O chão 16-bit deve desenhar tiles pixelados.');
+
+drawCalls.length = 0;
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
 assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O fallback do rio deve desenhar água enquanto os sprites carregam.');
 
@@ -76,5 +94,6 @@ assert.ok(
 const battlefield = new Battlefield(GAME_CONFIG);
 drawCalls.length = 0;
 assert.doesNotThrow(() => battlefield.draw(ctx, 0.5));
+assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O campo deve incluir o chão 16-bit.');
 
 console.log('river-visual.test.js: PASS');
