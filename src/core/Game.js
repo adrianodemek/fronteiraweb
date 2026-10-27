@@ -1,11 +1,11 @@
-import { GAME_CONFIG } from '../config.js?v=0.5.1';
-import { Battlefield } from '../world/Battlefield.js?v=0.5.1';
-import { Structure } from '../entities/Structure.js?v=0.5.1';
-import { Unit } from '../entities/Unit.js?v=0.5.1';
-import { DeploymentSystem } from '../systems/Deployment.js?v=0.5.1';
-import { SupplySystem } from '../systems/Supply.js?v=0.5.1';
-import { CardSystem } from '../systems/Cards.js?v=0.5.1';
-import { clamp } from '../utils/math.js?v=0.5.1';
+import { GAME_CONFIG } from '../config.js?v=0.6.0';
+import { Battlefield } from '../world/Battlefield.js?v=0.6.0';
+import { Structure } from '../entities/Structure.js?v=0.6.0';
+import { Unit } from '../entities/Unit.js?v=0.6.0';
+import { DeploymentSystem } from '../systems/Deployment.js?v=0.6.0';
+import { SupplySystem } from '../systems/Supply.js?v=0.6.0';
+import { CardSystem } from '../systems/Cards.js?v=0.6.0';
+import { clamp } from '../utils/math.js?v=0.6.0';
 
 export class Game {
   constructor(canvas) {
@@ -302,16 +302,19 @@ export class Game {
 
   drawMiniCard(card) {
     const { ctx } = this;
-    const { hud, palette } = this.config;
+    const { hud, palette, rarities } = this.config;
     const x = hud.nextX + 11;
     const y = hud.nextY + 16;
     const w = 31;
     const h = 35;
+    const rarityColor = rarities?.[card.rarity]?.color ?? palette.ui;
 
     ctx.fillStyle = '#101917';
     ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
     ctx.fillStyle = card.accent;
     ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = rarityColor;
+    ctx.fillRect(x, y, w, 3);
     ctx.fillStyle = palette.ui;
     ctx.font = 'bold 6px monospace';
     ctx.textAlign = 'center';
@@ -325,18 +328,21 @@ export class Game {
 
   drawCard(card, index) {
     const { ctx } = this;
-    const { hud, palette } = this.config;
+    const { hud, palette, rarities } = this.config;
     const rect = this.cards.getCardRect(index);
     const selected = this.cards.selectedIndex === index;
     const y = selected ? rect.y - 7 : rect.y;
+    const rarityColor = rarities?.[card.rarity]?.color ?? palette.ui;
 
-    ctx.fillStyle = selected ? palette.ui : '#0b1518';
+    ctx.fillStyle = selected ? palette.ui : rarityColor;
     ctx.fillRect(rect.x - 2, y - 2, rect.width + 4, rect.height + 4);
 
     ctx.fillStyle = '#c9c5ae';
     ctx.fillRect(rect.x, y, rect.width, rect.height);
     ctx.fillStyle = card.accent;
     ctx.fillRect(rect.x + 3, y + 3, rect.width - 6, rect.height - 6);
+    ctx.fillStyle = rarityColor;
+    ctx.fillRect(rect.x + 3, y + 3, rect.width - 6, 4);
 
     ctx.fillStyle = 'rgba(20, 27, 21, 0.30)';
     ctx.fillRect(rect.x + 8, y + 10, rect.width - 16, 36);
