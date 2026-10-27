@@ -13,10 +13,19 @@ assert.ok(TOP_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem superio
 assert.ok(BOTTOM_BANK_SHEET.startsWith('data:image/png;base64,'), 'A margem inferior deve usar sprites reais.');
 assert.ok(ROCK_SHEET.startsWith('data:image/png;base64,'), 'As pedras devem usar a folha PNG real em 16-bit.');
 assert.equal(RIVER_SPRITE_META.waterFrames, 6, 'A animação da água deve possuir 6 frames.');
+assert.equal(RIVER_SPRITE_META.waterFrameWidth, 128, 'A água não pode ser esmagada horizontalmente em tiles pequenos.');
+assert.equal(RIVER_SPRITE_META.waterFrameHeight, 24, 'O frame da água deve preservar toda a altura do rio.');
 assert.equal(RIVER_SPRITE_META.bankTiles, 6, 'Cada margem deve possuir 6 variações fixas.');
+assert.equal(RIVER_SPRITE_META.bankSourceWidth, 64, 'As margens devem usar recorte proporcional 64x16.');
+assert.equal(RIVER_SPRITE_META.bankTileHeight, 16, 'A margem deve ser fina e não cobrir o centro do rio.');
+assert.equal(RIVER_SPRITE_META.bankOverlap, 4, 'Cada margem deve avançar somente 4 px para dentro da água.');
 assert.equal(RIVER_SPRITE_META.rockFrames, 4, 'A decoração deve possuir 4 sprites de pedra.');
 assert.equal(RIVER_SPRITE_META.rockCount, RIVER_ROCK_LAYOUT.length, 'O renderer deve usar o layout de pedras separado.');
 assert.ok(RIVER_ROCK_LAYOUT.length >= 8, 'O rio deve ter pedras fixas nas duas margens.');
+
+const riverHeight = GAME_CONFIG.river.bottom - GAME_CONFIG.river.top;
+const visibleWaterHeight = riverHeight - RIVER_SPRITE_META.bankOverlap * 2;
+assert.ok(visibleWaterHeight >= 16, 'A água animada precisa permanecer visível entre as duas margens.');
 
 for (const rock of RIVER_ROCK_LAYOUT) {
   assert.ok(rock.side === 'top' || rock.side === 'bottom', 'Cada pedra deve indicar a margem em que fica.');
@@ -50,14 +59,14 @@ const ctx = {
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
 assert.ok(drawCalls.some(([type]) => type === 'fillRect'), 'O fallback do rio deve desenhar água enquanto os sprites carregam.');
 
-renderer.water = { complete: true, naturalWidth: 384 };
-renderer.topBank = { complete: true, naturalWidth: 192 };
-renderer.bottomBank = { complete: true, naturalWidth: 192 };
+renderer.water = { complete: true, naturalWidth: 768 };
+renderer.topBank = { complete: true, naturalWidth: 384 };
+renderer.bottomBank = { complete: true, naturalWidth: 384 };
 renderer.rocks = { complete: true, naturalWidth: 112 };
 drawCalls.length = 0;
 assert.doesNotThrow(() => renderer.draw(ctx, 0.3));
 assert.ok(
-  drawCalls.filter(([type]) => type === 'drawImage').length >= 28,
+  drawCalls.filter(([type]) => type === 'drawImage').length >= 20,
   'O rio deve desenhar água animada, margens e pedras usando sprites reais.',
 );
 
