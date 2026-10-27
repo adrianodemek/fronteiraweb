@@ -1,13 +1,13 @@
 import { distance } from '../utils/math.js';
 
-const HQ_WIDTH = 120;
-const HQ_HEIGHT = 75;
+const HQ_WIDTH = 160;
+const HQ_HEIGHT = 100;
 const HQ_CANNON_MOUNT_OFFSET_X = 0;
 const HQ_CANNON_MOUNT_OFFSET_Y = -10;
 
 export const HQ_ASSET_PATHS = Object.freeze({
-  front: new URL('../assets/structures/hq/hq_front.png?v=0.6.21', import.meta.url).href,
-  back: new URL('../assets/structures/hq/hq_back.png?v=0.6.21', import.meta.url).href,
+  front: new URL('../assets/structures/hq/hq_front.png?v=0.6.22', import.meta.url).href,
+  back: new URL('../assets/structures/hq/hq_back.png?v=0.6.22', import.meta.url).href,
 });
 
 function createSprite(src) {
@@ -136,8 +136,6 @@ export class Structure {
       if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
       ctx.drawImage(sprite, rect.x, rect.y, rect.w, rect.h);
 
-      // O flash de dano redesenha apenas os pixels do próprio PNG, preservando
-      // a transparência ao redor do QG em vez de criar um retângulo branco.
       if (this.flash > 0 && 'globalAlpha' in ctx) {
         const previousAlpha = ctx.globalAlpha;
         ctx.globalAlpha = 0.2;
@@ -149,8 +147,6 @@ export class Structure {
       return;
     }
 
-    // Fallback apenas enquanto o PNG ainda está carregando. Sem bandeira,
-    // antena ou canhão, para não contradizer o sprite definitivo.
     this.drawHeadquartersLoadingFallback(ctx, palette, x, y, w, h, body, light, isPlayer);
   }
 
@@ -163,7 +159,6 @@ export class Structure {
     ctx.fillStyle = '#77715f';
     ctx.fillRect(x + 11, y + 16, w - 22, h - 20);
 
-    // Plataforma superior vazia, reservada ao futuro canhão separado.
     const mountX = Math.round(this.x - 14);
     ctx.fillStyle = '#292d28';
     ctx.fillRect(mountX, y + 6, 28, 9);

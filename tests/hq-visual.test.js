@@ -22,14 +22,14 @@ class FakeImage {
 }
 
 globalThis.Image = FakeImage;
-const { Structure, HQ_ASSET_PATHS, HQ_VISUAL_META } = await import('../src/entities/Structure.js?hq-visual-v0621');
+const { Structure, HQ_ASSET_PATHS, HQ_VISUAL_META } = await import('../src/entities/Structure.js?hq-visual-v0622');
 
 delete globalThis.Image;
 
-assert.equal(HQ_VISUAL_META.width, 120, 'O QG deve ser bem mais largo que as bases laterais.');
-assert.equal(HQ_VISUAL_META.height, 75, 'O QG deve ter presença visual claramente maior no campo.');
-assert.ok(HQ_VISUAL_META.width >= 44 * 2.5, 'O QG deve ter pelo menos 2,5x a largura visual da base lateral.');
-assert.ok(HQ_VISUAL_META.height > 46, 'O QG deve ser mais alto que a base lateral.');
+assert.equal(HQ_VISUAL_META.width, 160, 'O QG deve ser muito mais largo que as bases laterais.');
+assert.equal(HQ_VISUAL_META.height, 100, 'O QG deve ter presença visual claramente maior no campo.');
+assert.ok(HQ_VISUAL_META.width >= 44 * 3.5, 'O QG deve ter pelo menos 3,5x a largura visual da base lateral.');
+assert.ok(HQ_VISUAL_META.height >= 46 * 2, 'O QG deve ter mais que o dobro da altura visual da base lateral.');
 assert.equal(HQ_VISUAL_META.spriteBased, true);
 assert.equal(HQ_VISUAL_META.assetDirectory, 'src/assets/structures/hq/');
 assert.equal(HQ_VISUAL_META.enemyView, 'front', 'O inimigo deve mostrar a frente do QG.');
@@ -44,8 +44,8 @@ assert.equal(HQ_VISUAL_META.separateCannonSprite, true, 'O canhão futuro precis
 assert.equal(HQ_VISUAL_META.cannonIncludedInSprite, false);
 assert.equal(HQ_VISUAL_META.flagIncluded, false);
 assert.equal(HQ_VISUAL_META.antennaIncluded, false);
-assert.match(HQ_ASSET_PATHS.front, /assets\/structures\/hq\/hq_front\.png\?v=0\.6\.21$/);
-assert.match(HQ_ASSET_PATHS.back, /assets\/structures\/hq\/hq_back\.png\?v=0\.6\.21$/);
+assert.match(HQ_ASSET_PATHS.front, /assets\/structures\/hq\/hq_front\.png\?v=0\.6\.22$/);
+assert.match(HQ_ASSET_PATHS.back, /assets\/structures\/hq\/hq_back\.png\?v=0\.6\.22$/);
 
 function assertPngSupportsTransparency(relativePath) {
   const fileUrl = new URL(relativePath, import.meta.url);
@@ -62,11 +62,8 @@ function assertPngSupportsTransparency(relativePath) {
     const type = buffer.toString('ascii', offset + 4, offset + 8);
     const dataStart = offset + 8;
 
-    if (type === 'IHDR') {
-      colorType = buffer[dataStart + 9];
-    } else if (type === 'tRNS') {
-      hasTransparencyChunk = true;
-    }
+    if (type === 'IHDR') colorType = buffer[dataStart + 9];
+    else if (type === 'tRNS') hasTransparencyChunk = true;
 
     offset = dataStart + length + 4;
     if (type === 'IEND') break;
@@ -130,12 +127,12 @@ const playerDraw = playerCtx.calls.find(({ type }) => type === 'drawImage');
 const enemyDraw = enemyCtx.calls.find(({ type }) => type === 'drawImage');
 assert.ok(playerDraw, 'O QG do jogador deve ser desenhado com PNG.');
 assert.ok(enemyDraw, 'O QG inimigo deve ser desenhado com PNG.');
-assert.match(playerDraw.args[0].src, /hq_back\.png\?v=0\.6\.21$/, 'Jogador deve usar hq_back.png.');
-assert.match(enemyDraw.args[0].src, /hq_front\.png\?v=0\.6\.21$/, 'Inimigo deve usar hq_front.png.');
-assert.equal(playerDraw.args[3], 120, 'O QG do jogador deve ser desenhado com 120 px de largura visual.');
-assert.equal(playerDraw.args[4], 75, 'O QG do jogador deve ser desenhado com 75 px de altura visual.');
-assert.equal(enemyDraw.args[3], 120, 'O QG inimigo deve usar a mesma escala visual.');
-assert.equal(enemyDraw.args[4], 75, 'O QG inimigo deve usar a mesma altura visual.');
+assert.match(playerDraw.args[0].src, /hq_back\.png\?v=0\.6\.22$/, 'Jogador deve usar hq_back.png.');
+assert.match(enemyDraw.args[0].src, /hq_front\.png\?v=0\.6\.22$/, 'Inimigo deve usar hq_front.png.');
+assert.equal(playerDraw.args[3], 160, 'O QG do jogador deve ser desenhado com 160 px de largura visual.');
+assert.equal(playerDraw.args[4], 100, 'O QG do jogador deve ser desenhado com 100 px de altura visual.');
+assert.equal(enemyDraw.args[3], 160, 'O QG inimigo deve usar a mesma escala visual.');
+assert.equal(enemyDraw.args[4], 100, 'O QG inimigo deve usar a mesma altura visual.');
 assert.equal(playerCtx.imageSmoothingEnabled, false, 'O canvas deve manter pixels definidos no QG do jogador.');
 assert.equal(enemyCtx.imageSmoothingEnabled, false, 'O canvas deve manter pixels definidos no QG inimigo.');
 
