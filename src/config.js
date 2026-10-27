@@ -1,7 +1,7 @@
-import { CARD_CATALOG, DEFAULT_BATTLE_DECK } from './data/cards.js?v=0.6.22';
+import { CARD_CATALOG, DEFAULT_BATTLE_DECK } from './data/cards.js?v=0.6.23';
 
 export const GAME_CONFIG = Object.freeze({
-  version: '0.6.22',
+  version: '0.6.23',
   width: 360,
   height: 800,
   arenaGrid: {
