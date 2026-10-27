@@ -1,15 +1,12 @@
 import { Game } from './GameRuntime.js?v=0.6.14';
-import { GAME_CONFIG } from '../config.js?v=0.6.14';
-import { Battlefield } from '../world/Battlefield.js?v=0.6.14';
+import { GAME_CONFIG } from '../config.js?v=0.6.15';
+import { Battlefield } from '../world/Battlefield.js?v=0.6.15';
 import { BattleUnit } from '../entities/BattleUnit.js?v=0.6.11';
 import { clamp } from '../utils/math.js?v=0.6.11';
 
 export class BattleGame extends Game {
   constructor(canvas) {
     super(canvas);
-
-    // Garante que a versão jogável use sempre a configuração e o renderer
-    // frescos desta release, mesmo se o navegador ainda tiver o Game base em cache.
     this.config = GAME_CONFIG;
     this.battlefield = new Battlefield(GAME_CONFIG);
     this.deployment.config = GAME_CONFIG;
@@ -20,7 +17,6 @@ export class BattleGame extends Game {
 
   spawnUnit(team, lane, x, y, unitType = 'rifleman') {
     if (this.units.length >= 70) return false;
-
     const unitTypes = this.config.unitTypes ?? {};
     const stats = unitTypes[unitType] ?? unitTypes.rifleman ?? this.config.infantry;
     if (!stats) return false;
