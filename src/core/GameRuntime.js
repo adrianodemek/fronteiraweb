@@ -1,11 +1,11 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
 import { Structure } from '../entities/Structure.js?v=0.6.23';
 import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.29';
-import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.31';
+import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.33';
 import {
   SIDE_BASE_DESTRUCTION_FX,
   getSideBaseShakeOffset,
-} from '../effects/sideBaseDestructionFx.js?v=0.6.31';
+} from '../effects/sideBaseDestructionFx.js?v=0.6.33';
 
 // QGs e bases laterais usam classes visuais dedicadas, mantendo a lógica
 // original de HP, alcance, colisão, dano, cadência e posição.
@@ -27,18 +27,46 @@ export class Game extends LegacyGame {
     this.enemyLane = 0;
     this.resourceDeniedFlash = 0;
     this.sideBaseShakeRemaining = 0;
+    this.sideBaseAliveState = new Map(
+      this.structures
+        .filter((structure) => structure.kind === 'base')
+        .map((structure) => [structure.id, structure.alive]),
+    );
     this.supplies.reset();
     this.cards.reset();
   }
 
   update(dt) {
     this.sideBaseShakeRemaining = Math.max(0, (this.sideBaseShakeRemaining ?? 0) - dt);
+
+    // Guardamos o estado real antes do update completo. Assim a destruição é
+    // detectada mesmo se o HP chegar a zero por qualquer caminho de dano.
+    const aliveBeforeUpdate = new Map(
+      this.structures
+        .filter((structure) => structure.kind === 'base')
+        .map((structure) => [
+          structure.id,
+          this.sideBaseAliveState?.get(structure.id) ?? structure.alive,
+        ]),
+    );
+
     super.update(dt);
 
     for (const structure of this.structures) {
-      if (typeof structure.consumeDestructionShake === 'function' && structure.consumeDestructionShake()) {
+      if (structure.kind !== 'base') continue;
+
+      const wasAlive = aliveBeforeUpdate.get(structure.id) ?? structure.alive;
+      const destroyedNow = wasAlive && !structure.alive;
+      const pendingPulse = typeof structure.consumeDestructionShake === 'function'
+        ? structure.consumeDestructionShake()
+        : false;
+
+      if (destroyedNow || pendingPulse) {
         this.sideBaseShakeRemaining = SIDE_BASE_DESTRUCTION_FX.shakeDuration;
+        structure.destroyedFxAge = 0;
       }
+
+      this.sideBaseAliveState?.set(structure.id, structure.alive);
     }
   }
 
