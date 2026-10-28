@@ -4,8 +4,8 @@ const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
 
 export const SIDE_BASE_ASSET_PATHS = Object.freeze({
-  front: new URL('../assets/structures/side-base/base_front.png?v=0.6.28', import.meta.url).href,
-  back: new URL('../assets/structures/side-base/base_back.png?v=0.6.28', import.meta.url).href,
+  front: new URL('../assets/structures/side-base/base_front.svg?v=0.6.28', import.meta.url).href,
+  back: new URL('../assets/structures/side-base/base_back.svg?v=0.6.28', import.meta.url).href,
 });
 
 function createSprite(src) {
@@ -75,10 +75,11 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   assetDirectory: 'src/assets/structures/side-base/',
   enemyView: 'front',
   playerView: 'back',
-  frontAsset: 'base_front.png',
-  backAsset: 'base_back.png',
+  frontAsset: 'base_front.svg',
+  backAsset: 'base_back.svg',
   sameVisualSizeBothTeams: true,
   transparentBackground: true,
+  embeddedPixelSprite: true,
   visiblePixelValidation: true,
   pixelArt: true,
   imageSmoothing: false,
