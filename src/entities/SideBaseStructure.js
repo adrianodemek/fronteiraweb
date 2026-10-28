@@ -3,6 +3,7 @@ import { SIDE_BASE_FRONT_SPRITE } from '../assets/structures/side-base/base_fron
 import { SIDE_BASE_BACK_SPRITE } from '../assets/structures/side-base/base_back.sprite.js?v=0.6.28';
 import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../assets/structures/side-base/base_front_destroyed.sprite.js?v=0.6.30';
 import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../assets/structures/side-base/base_back_destroyed.runtime.js?v=0.6.30';
+import { getSmokePuffs } from '../effects/sideBaseDestructionFx.js?v=0.6.31';
 
 const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
@@ -66,7 +67,46 @@ function drawPixelSprite(ctx, sprite, x, y, w, h, flash = false) {
   return true;
 }
 
+function drawSmoke(ctx, age, centerX, baseY) {
+  if (typeof ctx.fillRect !== 'function') return;
+  const puffs = getSmokePuffs(age, centerX, baseY);
+  const canSave = typeof ctx.save === 'function' && typeof ctx.restore === 'function';
+  if (canSave) ctx.save();
+
+  const previousAlpha = 'globalAlpha' in ctx ? ctx.globalAlpha : 1;
+  for (const puff of puffs) {
+    if ('globalAlpha' in ctx) ctx.globalAlpha = puff.alpha;
+    ctx.fillStyle = puff.shade;
+    ctx.fillRect(puff.x, puff.y, puff.size, Math.max(2, puff.size - 1));
+    if (puff.size >= 5) {
+      ctx.fillRect(puff.x + 2, puff.y - 2, Math.max(2, puff.size - 2), 2);
+    }
+  }
+  if ('globalAlpha' in ctx) ctx.globalAlpha = previousAlpha;
+  if (canSave) ctx.restore();
+}
+
 export class SideBaseStructure extends Structure {
+  takeDamage(amount) {
+    const wasAlive = this.alive;
+    super.takeDamage(amount);
+    if (wasAlive && !this.alive) {
+      this.destroyedFxAge = 0;
+      this.destructionShakePending = true;
+    }
+  }
+
+  update(dt, units) {
+    super.update(dt, units);
+    if (!this.alive) this.destroyedFxAge = (this.destroyedFxAge ?? 0) + dt;
+  }
+
+  consumeDestructionShake() {
+    if (!this.destructionShakePending) return false;
+    this.destructionShakePending = false;
+    return true;
+  }
+
   draw(ctx, palette) {
     if (this.kind !== 'base') {
       super.draw(ctx, palette);
@@ -84,6 +124,7 @@ export class SideBaseStructure extends Structure {
       if (!drawPixelSprite(ctx, destroyedSprite, x, y, w, h, false)) {
         this.drawDestroyed(ctx, palette, x, y, w, h, false);
       }
+      drawSmoke(ctx, this.destroyedFxAge ?? 0, this.x, y + Math.round(h * 0.42));
       return;
     }
 
@@ -116,6 +157,9 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   playerDestroyedAsset: 'base_back_destroyed.runtime.js',
   destroyedSwapCondition: 'hp<=0',
   destroyedUsesTeamPerspective: true,
+  smokeOnDestroyed: true,
+  smokeStyle: 'soft-pixel-puffs',
+  shakePulseOnDestroy: true,
   storageFormat: 'text-rle-pixel-sprite',
   sameVisualSizeBothTeams: true,
   transparentBackground: true,
@@ -123,5 +167,5 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   pixelArt: true,
   imageSmoothing: false,
   gameplayHitRadiusUnchanged: 22,
-  release: '0.6.30',
+  release: '0.6.31',
 });
