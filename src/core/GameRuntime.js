@@ -1,7 +1,11 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
 import { Structure } from '../entities/Structure.js?v=0.6.23';
 import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.29';
-import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.30';
+import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.31';
+import {
+  SIDE_BASE_DESTRUCTION_FX,
+  getSideBaseShakeOffset,
+} from '../effects/sideBaseDestructionFx.js?v=0.6.31';
 
 // QGs e bases laterais usam classes visuais dedicadas, mantendo a lógica
 // original de HP, alcance, colisão, dano, cadência e posição.
@@ -22,7 +26,52 @@ export class Game extends LegacyGame {
     this.enemySpawnClock = 1.8;
     this.enemyLane = 0;
     this.resourceDeniedFlash = 0;
+    this.sideBaseShakeRemaining = 0;
     this.supplies.reset();
     this.cards.reset();
+  }
+
+  update(dt) {
+    this.sideBaseShakeRemaining = Math.max(0, (this.sideBaseShakeRemaining ?? 0) - dt);
+    super.update(dt);
+
+    for (const structure of this.structures) {
+      if (typeof structure.consumeDestructionShake === 'function' && structure.consumeDestructionShake()) {
+        this.sideBaseShakeRemaining = SIDE_BASE_DESTRUCTION_FX.shakeDuration;
+      }
+    }
+  }
+
+  draw() {
+    const { ctx } = this;
+    const { width, height, palette } = this.config;
+    const shake = getSideBaseShakeOffset(this.elapsed, this.sideBaseShakeRemaining ?? 0);
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.translate(Math.round(shake.x), Math.round(shake.y));
+
+    this.battlefield.draw(ctx, this.elapsed);
+
+    if (this.state === 'playing') {
+      this.drawDeploymentZones();
+    }
+
+    for (const structure of this.structures) {
+      structure.draw(ctx, palette);
+    }
+
+    const orderedUnits = [...this.units].sort((a, b) => a.y - b.y);
+    for (const unit of orderedUnits) {
+      unit.draw(ctx, palette);
+    }
+
+    ctx.restore();
+
+    // HUD fica estável: somente o campo de batalha recebe a tremida suave.
+    this.drawTopHud();
+    this.drawCardHud();
+
+    if (this.state === 'finished') this.drawResultOverlay();
   }
 }
