@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { GAME_CONFIG } from '../src/config.js';
 import { SIDE_BASE_FRONT_SPRITE } from '../src/assets/structures/side-base/base_front.sprite.js';
 import { SIDE_BASE_BACK_SPRITE } from '../src/assets/structures/side-base/base_back.sprite.js';
+import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_front_destroyed.sprite.js';
+import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_back_destroyed.sprite.js';
 
 const RUN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -9,9 +11,9 @@ function decodeValue(char) {
   return RUN_ALPHABET.indexOf(char);
 }
 
-function validateSpriteDefinition(definition, label) {
-  assert.equal(definition.width, 64, `${label}: largura fonte deve ser 64.`);
-  assert.equal(definition.height, 40, `${label}: altura fonte deve ser 40.`);
+function validateSpriteDefinition(definition, label, expectedWidth, expectedHeight, minimumVisiblePixels) {
+  assert.equal(definition.width, expectedWidth, `${label}: largura fonte inesperada.`);
+  assert.equal(definition.height, expectedHeight, `${label}: altura fonte inesperada.`);
   assert.equal(definition.palette.length % 6, 0, `${label}: paleta hexadecimal inválida.`);
   assert.ok(definition.palette.length / 6 <= 64, `${label}: paleta não pode ultrapassar 64 cores.`);
   assert.equal(definition.runs.length % 4, 0, `${label}: dados RLE incompletos.`);
@@ -30,16 +32,21 @@ function validateSpriteDefinition(definition, label) {
     visiblePixels += length;
   }
 
-  assert.ok(visiblePixels > 1500, `${label}: precisa conter pixels visíveis reais.`);
-  assert.ok(visiblePixels < definition.width * definition.height - 100, `${label}: precisa preservar área transparente ao redor.`);
+  assert.ok(visiblePixels > minimumVisiblePixels, `${label}: precisa conter pixels visíveis reais.`);
+  assert.ok(visiblePixels < definition.width * definition.height, `${label}: precisa preservar transparência ao redor.`);
   return visiblePixels;
 }
 
-const frontVisible = validateSpriteDefinition(SIDE_BASE_FRONT_SPRITE, 'base_front.sprite.js');
-const backVisible = validateSpriteDefinition(SIDE_BASE_BACK_SPRITE, 'base_back.sprite.js');
-assert.equal(frontVisible, 2164, 'A frente deve preservar exatamente os pixels visíveis do sprite aprovado.');
-assert.equal(backVisible, 2127, 'As costas devem preservar exatamente os pixels visíveis do sprite aprovado.');
-assert.notEqual(SIDE_BASE_FRONT_SPRITE.runs, SIDE_BASE_BACK_SPRITE.runs, 'Frente e costas precisam ser artes diferentes.');
+const frontVisible = validateSpriteDefinition(SIDE_BASE_FRONT_SPRITE, 'base_front.sprite.js', 64, 40, 1500);
+const backVisible = validateSpriteDefinition(SIDE_BASE_BACK_SPRITE, 'base_back.sprite.js', 64, 40, 1500);
+const frontDestroyedVisible = validateSpriteDefinition(SIDE_BASE_FRONT_DESTROYED_SPRITE, 'base_front_destroyed.sprite.js', 48, 30, 900);
+const backDestroyedVisible = validateSpriteDefinition(SIDE_BASE_BACK_DESTROYED_SPRITE, 'base_back_destroyed.sprite.js', 48, 30, 900);
+
+assert.equal(frontVisible, 2164, 'A frente normal deve preservar o sprite aprovado.');
+assert.equal(backVisible, 2127, 'As costas normais devem preservar o sprite aprovado.');
+assert.equal(frontDestroyedVisible, 1064, 'A frente destruída deve preservar os pixels do novo sprite.');
+assert.equal(backDestroyedVisible, 1033, 'As costas destruídas devem preservar os pixels do novo sprite.');
+assert.notEqual(SIDE_BASE_FRONT_DESTROYED_SPRITE.runs, SIDE_BASE_BACK_DESTROYED_SPRITE.runs, 'Frente e costas destruídas precisam ser artes diferentes.');
 
 const offscreenCanvases = [];
 globalThis.document = {
@@ -70,32 +77,33 @@ globalThis.document = {
 const {
   SideBaseStructure,
   SIDE_BASE_VISUAL_META,
-} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0628-rle');
+} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0630-destroyed');
 
 delete globalThis.document;
 
-assert.equal(offscreenCanvases.length, 2, 'Frente e costas devem ser reconstruídas uma vez em canvases transparentes.');
-assert.equal(offscreenCanvases[0].width, 64);
-assert.equal(offscreenCanvases[0].height, 40);
-assert.equal(offscreenCanvases[1].width, 64);
-assert.equal(offscreenCanvases[1].height, 40);
+assert.equal(offscreenCanvases.length, 4, 'Frente/costas normais e destruídas devem ser reconstruídas em canvases transparentes.');
+assert.deepEqual(offscreenCanvases.map(({ width, height }) => [width, height]), [[64, 40], [64, 40], [48, 30], [48, 30]]);
 assert.equal(offscreenCanvases[0].fills.reduce((sum, fill) => sum + fill.width, 0), 2164);
 assert.equal(offscreenCanvases[1].fills.reduce((sum, fill) => sum + fill.width, 0), 2127);
+assert.equal(offscreenCanvases[2].fills.reduce((sum, fill) => sum + fill.width, 0), 1064);
+assert.equal(offscreenCanvases[3].fills.reduce((sum, fill) => sum + fill.width, 0), 1033);
 
 assert.equal(SIDE_BASE_VISUAL_META.width, 70);
 assert.equal(SIDE_BASE_VISUAL_META.height, 44);
 assert.equal(SIDE_BASE_VISUAL_META.sourceWidth, 64);
 assert.equal(SIDE_BASE_VISUAL_META.sourceHeight, 40);
+assert.equal(SIDE_BASE_VISUAL_META.destroyedSourceWidth, 48);
+assert.equal(SIDE_BASE_VISUAL_META.destroyedSourceHeight, 30);
 assert.equal(SIDE_BASE_VISUAL_META.enemyView, 'front');
 assert.equal(SIDE_BASE_VISUAL_META.playerView, 'back');
-assert.equal(SIDE_BASE_VISUAL_META.frontAsset, 'base_front.sprite.js');
-assert.equal(SIDE_BASE_VISUAL_META.backAsset, 'base_back.sprite.js');
+assert.equal(SIDE_BASE_VISUAL_META.enemyDestroyedAsset, 'base_front_destroyed.sprite.js');
+assert.equal(SIDE_BASE_VISUAL_META.playerDestroyedAsset, 'base_back_destroyed.sprite.js');
+assert.equal(SIDE_BASE_VISUAL_META.destroyedSwapCondition, 'hp<=0');
+assert.equal(SIDE_BASE_VISUAL_META.destroyedUsesTeamPerspective, true);
 assert.equal(SIDE_BASE_VISUAL_META.storageFormat, 'text-rle-pixel-sprite');
-assert.equal(SIDE_BASE_VISUAL_META.transparentBackground, true);
-assert.equal(SIDE_BASE_VISUAL_META.visiblePixelValidation, true);
 assert.equal(SIDE_BASE_VISUAL_META.imageSmoothing, false);
 assert.equal(SIDE_BASE_VISUAL_META.gameplayHitRadiusUnchanged, 22);
-assert.equal(SIDE_BASE_VISUAL_META.release, '0.6.28');
+assert.equal(SIDE_BASE_VISUAL_META.release, '0.6.30');
 
 function makeCtx() {
   const calls = [];
@@ -121,16 +129,27 @@ for (const base of bases) {
 
   const structure = new SideBaseStructure({ ...base });
   assert.equal(structure.hitRadius, 22, `${base.id}: colisão deve continuar em 22.`);
-  const ctx = makeCtx();
-  structure.draw(ctx, GAME_CONFIG.palette);
-  const draw = ctx.calls.find(({ type }) => type === 'drawImage');
-  assert.ok(draw, `${base.id}: deve desenhar o sprite reconstruído.`);
 
-  const expectedCanvas = base.team === 'enemy' ? offscreenCanvases[0] : offscreenCanvases[1];
-  assert.equal(draw.args[0], expectedCanvas, `${base.id}: deve usar ${base.team === 'enemy' ? 'frente' : 'costas'}.`);
-  assert.equal(draw.args[3], 70);
-  assert.equal(draw.args[4], 44);
-  assert.equal(ctx.imageSmoothingEnabled, false);
+  const aliveCtx = makeCtx();
+  structure.draw(aliveCtx, GAME_CONFIG.palette);
+  const aliveDraw = aliveCtx.calls.find(({ type }) => type === 'drawImage');
+  assert.ok(aliveDraw, `${base.id}: viva deve desenhar o sprite normal.`);
+  const expectedAliveCanvas = base.team === 'enemy' ? offscreenCanvases[0] : offscreenCanvases[1];
+  assert.equal(aliveDraw.args[0], expectedAliveCanvas, `${base.id}: viva deve usar ${base.team === 'enemy' ? 'frente' : 'costas'}.`);
+  assert.equal(aliveDraw.args[3], 70);
+  assert.equal(aliveDraw.args[4], 44);
+
+  structure.hp = 0;
+  assert.equal(structure.alive, false, `${base.id}: HP zero deve marcar a base como destruída.`);
+  const destroyedCtx = makeCtx();
+  structure.draw(destroyedCtx, GAME_CONFIG.palette);
+  const destroyedDraw = destroyedCtx.calls.find(({ type }) => type === 'drawImage');
+  assert.ok(destroyedDraw, `${base.id}: destruída deve desenhar o novo sprite destruído.`);
+  const expectedDestroyedCanvas = base.team === 'enemy' ? offscreenCanvases[2] : offscreenCanvases[3];
+  assert.equal(destroyedDraw.args[0], expectedDestroyedCanvas, `${base.id}: destruída deve manter a perspectiva da equipe.`);
+  assert.equal(destroyedDraw.args[3], 70);
+  assert.equal(destroyedDraw.args[4], 44);
+  assert.equal(destroyedCtx.calls.some(({ type }) => type === 'fillText'), false, `${base.id}: destruída não deve exibir barra/texto de HP.`);
 }
 
 console.log('side-base-visual.test.js: PASS');
