@@ -33,6 +33,15 @@ body {
   place-items: center;
   overflow: hidden;
   padding: 0;
+  background: #101513;
+}
+
+.game-shell:fullscreen,
+.game-shell:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100dvh;
+  background: #101513;
 }
 
 #game {
@@ -49,9 +58,116 @@ body {
   touch-action: none;
 }
 
+.fullscreen-toggle {
+  position: absolute;
+  z-index: 20;
+  top: max(7px, env(safe-area-inset-top));
+  left: calc(50% - min(50vw, 22.5dvh) + max(7px, env(safe-area-inset-left)));
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(239, 227, 189, 0.6);
+  border-radius: 3px;
+  background: rgba(13, 22, 18, 0.72);
+  color: #efe3bd;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fullscreen-toggle[hidden] {
+  display: none;
+}
+
+.fullscreen-toggle:active {
+  transform: translateY(1px);
+  background: rgba(22, 34, 27, 0.9);
+}
+
+.fullscreen-icon {
+  position: absolute;
+  inset: 7px;
+  display: block;
+}
+
+.fullscreen-icon i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: currentColor;
+  border-style: solid;
+}
+
+.fullscreen-icon i:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+}
+
+.fullscreen-icon i:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-width: 2px 2px 0 0;
+}
+
+.fullscreen-icon i:nth-child(3) {
+  right: 0;
+  bottom: 0;
+  border-width: 0 2px 2px 0;
+}
+
+.fullscreen-icon i:nth-child(4) {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 2px 2px;
+}
+
+.fullscreen-icon-exit {
+  display: none;
+}
+
+.fullscreen-icon-exit i:nth-child(1) {
+  top: 0;
+  left: 0;
+  transform: translate(3px, 3px);
+}
+
+.fullscreen-icon-exit i:nth-child(2) {
+  top: 0;
+  right: 0;
+  transform: translate(-3px, 3px);
+}
+
+.fullscreen-icon-exit i:nth-child(3) {
+  right: 0;
+  bottom: 0;
+  transform: translate(-3px, -3px);
+}
+
+.fullscreen-icon-exit i:nth-child(4) {
+  bottom: 0;
+  left: 0;
+  transform: translate(3px, -3px);
+}
+
+.fullscreen-toggle.is-fullscreen .fullscreen-icon-enter {
+  display: none;
+}
+
+.fullscreen-toggle.is-fullscreen .fullscreen-icon-exit {
+  display: block;
+}
+
 @media (max-aspect-ratio: 9/20) {
   #game {
     width: 100vw;
     height: auto;
+  }
+}
+
+@media (pointer: coarse) {
+  .fullscreen-toggle {
+    width: 32px;
+    height: 32px;
   }
 }
