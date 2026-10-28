@@ -1,6 +1,8 @@
 import { Structure } from './Structure.js?v=0.6.23';
 import { SIDE_BASE_FRONT_SPRITE } from '../assets/structures/side-base/base_front.sprite.js?v=0.6.28';
 import { SIDE_BASE_BACK_SPRITE } from '../assets/structures/side-base/base_back.sprite.js?v=0.6.28';
+import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../assets/structures/side-base/base_front_destroyed.sprite.js?v=0.6.30';
+import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../assets/structures/side-base/base_back_destroyed.runtime.js?v=0.6.30';
 
 const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
@@ -40,7 +42,29 @@ export function createSideBaseSpriteCanvas(definition) {
 const SIDE_BASE_SPRITES = Object.freeze({
   front: createSideBaseSpriteCanvas(SIDE_BASE_FRONT_SPRITE),
   back: createSideBaseSpriteCanvas(SIDE_BASE_BACK_SPRITE),
+  frontDestroyed: createSideBaseSpriteCanvas(SIDE_BASE_FRONT_DESTROYED_SPRITE),
+  backDestroyed: createSideBaseSpriteCanvas(SIDE_BASE_BACK_DESTROYED_SPRITE),
 });
+
+function drawPixelSprite(ctx, sprite, x, y, w, h, flash = false) {
+  if (!sprite || typeof ctx.drawImage !== 'function') return false;
+
+  const canSave = typeof ctx.save === 'function' && typeof ctx.restore === 'function';
+  if (canSave) ctx.save();
+  if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
+
+  ctx.drawImage(sprite, x, y, w, h);
+
+  if (flash && 'globalAlpha' in ctx) {
+    const previousAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = 0.2;
+    ctx.drawImage(sprite, x, y, w, h);
+    ctx.globalAlpha = previousAlpha ?? 1;
+  }
+
+  if (canSave) ctx.restore();
+  return true;
+}
 
 export class SideBaseStructure extends Structure {
   draw(ctx, palette) {
@@ -56,7 +80,10 @@ export class SideBaseStructure extends Structure {
     const y = Math.round(this.y - h / 2);
 
     if (!this.alive) {
-      this.drawDestroyed(ctx, palette, x, y, w, h, false);
+      const destroyedSprite = isPlayer ? SIDE_BASE_SPRITES.backDestroyed : SIDE_BASE_SPRITES.frontDestroyed;
+      if (!drawPixelSprite(ctx, destroyedSprite, x, y, w, h, false)) {
+        this.drawDestroyed(ctx, palette, x, y, w, h, false);
+      }
       return;
     }
 
@@ -64,22 +91,7 @@ export class SideBaseStructure extends Structure {
     const body = isPlayer ? palette.player : palette.enemy;
     const light = isPlayer ? palette.playerLight : palette.enemyLight;
 
-    if (sprite && typeof ctx.drawImage === 'function') {
-      const canSave = typeof ctx.save === 'function' && typeof ctx.restore === 'function';
-      if (canSave) ctx.save();
-      if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
-
-      ctx.drawImage(sprite, x, y, w, h);
-
-      if (this.flash > 0 && 'globalAlpha' in ctx) {
-        const previousAlpha = ctx.globalAlpha;
-        ctx.globalAlpha = 0.2;
-        ctx.drawImage(sprite, x, y, w, h);
-        ctx.globalAlpha = previousAlpha ?? 1;
-      }
-
-      if (canSave) ctx.restore();
-    } else {
+    if (!drawPixelSprite(ctx, sprite, x, y, w, h, this.flash > 0)) {
       super.drawSideBase(ctx, palette, x, y, w, h, body, light);
     }
 
@@ -92,12 +104,18 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   height: SIDE_BASE_HEIGHT,
   sourceWidth: 64,
   sourceHeight: 40,
+  destroyedSourceWidth: 48,
+  destroyedSourceHeight: 30,
   spriteBased: true,
   assetDirectory: 'src/assets/structures/side-base/',
   enemyView: 'front',
   playerView: 'back',
   frontAsset: 'base_front.sprite.js',
   backAsset: 'base_back.sprite.js',
+  enemyDestroyedAsset: 'base_front_destroyed.sprite.js',
+  playerDestroyedAsset: 'base_back_destroyed.runtime.js',
+  destroyedSwapCondition: 'hp<=0',
+  destroyedUsesTeamPerspective: true,
   storageFormat: 'text-rle-pixel-sprite',
   sameVisualSizeBothTeams: true,
   transparentBackground: true,
@@ -105,5 +123,5 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   pixelArt: true,
   imageSmoothing: false,
   gameplayHitRadiusUnchanged: 22,
-  release: '0.6.28',
+  release: '0.6.30',
 });
