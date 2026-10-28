@@ -1,41 +1,52 @@
 import { Structure } from './Structure.js?v=0.6.23';
+import { HQ_FRONT_PERSPECTIVE_SPRITE } from '../assets/structures/hq/hq_front_perspective.sprite.js?v=0.6.29';
+import { HQ_BACK_PERSPECTIVE_SPRITE } from '../assets/structures/hq/hq_back_perspective.sprite.js?v=0.6.29';
 
-export const HQ_RUNTIME_ASSET_PATHS = Object.freeze({
-  enemy: new URL('../assets/structures/hq/hq_front.png?v=0.6.26&hq=enemy-front', import.meta.url).href,
-  player: new URL('../assets/structures/hq_back.png?v=0.6.26&hq=player-back-restored', import.meta.url).href,
-});
+const PIXEL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-export const HQ_RUNTIME_ASSET_FALLBACKS = Object.freeze({
-  enemy: [],
-  player: [
-    new URL('../assets/structures/hq/hq_back.png?v=0.6.26&hq=player-back-restored-nested', import.meta.url).href,
-  ],
-});
+export function createHqSpriteCanvas(definition, view) {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
 
-function createSprite(primarySrc, fallbackSrcs = []) {
-  if (typeof Image === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = definition.width;
+  canvas.height = definition.height;
+  canvas.__hqView = view;
 
-  const image = new Image();
-  const sources = [primarySrc, ...fallbackSrcs];
-  let sourceIndex = 0;
+  const ctx = canvas.getContext?.('2d');
+  if (!ctx) return null;
+  if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
 
-  const loadCurrentSource = () => {
-    image.src = sources[sourceIndex];
-  };
+  for (let y = 0; y < definition.height; y += 1) {
+    let x = 0;
+    while (x < definition.width) {
+      const offset = y * definition.width + x;
+      const colorIndex = PIXEL_ALPHABET.indexOf(definition.pixels[offset]);
 
-  image.onerror = () => {
-    if (sourceIndex >= sources.length - 1) return;
-    sourceIndex += 1;
-    loadCurrentSource();
-  };
+      if (colorIndex < 0 || colorIndex === 63) {
+        x += 1;
+        continue;
+      }
 
-  loadCurrentSource();
-  return image;
+      let runLength = 1;
+      while (x + runLength < definition.width) {
+        const nextOffset = y * definition.width + x + runLength;
+        if (definition.pixels[nextOffset] !== definition.pixels[offset]) break;
+        runLength += 1;
+      }
+
+      const paletteOffset = colorIndex * 6;
+      ctx.fillStyle = `#${definition.palette.slice(paletteOffset, paletteOffset + 6)}`;
+      ctx.fillRect(x, y, runLength, 1);
+      x += runLength;
+    }
+  }
+
+  return canvas;
 }
 
 const HQ_RUNTIME_SPRITES = Object.freeze({
-  enemy: createSprite(HQ_RUNTIME_ASSET_PATHS.enemy, HQ_RUNTIME_ASSET_FALLBACKS.enemy),
-  player: createSprite(HQ_RUNTIME_ASSET_PATHS.player, HQ_RUNTIME_ASSET_FALLBACKS.player),
+  enemy: createHqSpriteCanvas(HQ_FRONT_PERSPECTIVE_SPRITE, 'front'),
+  player: createHqSpriteCanvas(HQ_BACK_PERSPECTIVE_SPRITE, 'back'),
 });
 
 export class HeadquartersStructure extends Structure {
@@ -43,13 +54,13 @@ export class HeadquartersStructure extends Structure {
     const slot = this.id === 'player-hq' ? 'player' : 'enemy';
     const sprite = HQ_RUNTIME_SPRITES[slot];
 
-    if (sprite?.complete && sprite.naturalWidth > 0 && sprite.naturalHeight > 0 && typeof ctx.drawImage === 'function') {
+    if (sprite && typeof ctx.drawImage === 'function') {
       const canSave = typeof ctx.save === 'function' && typeof ctx.restore === 'function';
 
       if (canSave) ctx.save();
       if ('imageSmoothingEnabled' in ctx) ctx.imageSmoothingEnabled = false;
 
-      // player-hq = sprite traseiro restaurado; enemy-hq = sprite frontal.
+      // Frente do inimigo e costas do jogador usam a mesma perspectiva elevada do mapa.
       ctx.drawImage(sprite, x, y, w, h);
 
       if (this.flash > 0 && 'globalAlpha' in ctx) {
@@ -70,14 +81,21 @@ export class HeadquartersStructure extends Structure {
 export const HQ_RUNTIME_META = Object.freeze({
   playerStructureId: 'player-hq',
   playerView: 'back',
-  playerAsset: 'hq_back.png',
-  playerPrimaryPath: '../assets/structures/hq_back.png',
-  playerFallbackPath: '../assets/structures/hq/hq_back.png',
+  playerAsset: 'hq_back_perspective.sprite.js',
   enemyStructureId: 'enemy-hq',
   enemyView: 'front',
-  enemyAsset: 'hq_front.png',
+  enemyAsset: 'hq_front_perspective.sprite.js',
   explicitStructureMapping: true,
-  dualPathPlayerAsset: true,
-  restoredFromOriginalSheet: true,
-  release: '0.6.26',
+  sourceWidth: 96,
+  sourceHeight: 60,
+  renderWidth: 140,
+  renderHeight: 88,
+  storageFormat: 'text-palette-grid',
+  transparentBackground: true,
+  visiblePixelValidation: true,
+  pixelArt: true,
+  imageSmoothing: false,
+  perspective: 'map-top-down-corrected',
+  gameplayUnchanged: true,
+  release: '0.6.29',
 });
