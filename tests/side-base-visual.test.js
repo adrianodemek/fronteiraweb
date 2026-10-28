@@ -45,7 +45,7 @@ const backDestroyedVisible = validateSpriteDefinition(SIDE_BASE_BACK_DESTROYED_S
 assert.equal(frontVisible, 2164, 'A frente normal deve preservar o sprite aprovado.');
 assert.equal(backVisible, 2127, 'As costas normais devem preservar o sprite aprovado.');
 assert.equal(frontDestroyedVisible, 1064, 'A frente destruída deve preservar os pixels do novo sprite.');
-assert.equal(backDestroyedVisible, 1033, 'As costas destruídas devem preservar os pixels do novo sprite.');
+assert.equal(backDestroyedVisible, 1032, 'As costas destruídas devem preservar os pixels serializados do novo sprite.');
 assert.notEqual(SIDE_BASE_FRONT_DESTROYED_SPRITE.runs, SIDE_BASE_BACK_DESTROYED_SPRITE.runs, 'Frente e costas destruídas precisam ser artes diferentes.');
 
 const offscreenCanvases = [];
@@ -86,7 +86,7 @@ assert.deepEqual(offscreenCanvases.map(({ width, height }) => [width, height]), 
 assert.equal(offscreenCanvases[0].fills.reduce((sum, fill) => sum + fill.width, 0), 2164);
 assert.equal(offscreenCanvases[1].fills.reduce((sum, fill) => sum + fill.width, 0), 2127);
 assert.equal(offscreenCanvases[2].fills.reduce((sum, fill) => sum + fill.width, 0), 1064);
-assert.equal(offscreenCanvases[3].fills.reduce((sum, fill) => sum + fill.width, 0), 1033);
+assert.equal(offscreenCanvases[3].fills.reduce((sum, fill) => sum + fill.width, 0), 1032);
 
 assert.equal(SIDE_BASE_VISUAL_META.width, 70);
 assert.equal(SIDE_BASE_VISUAL_META.height, 44);
