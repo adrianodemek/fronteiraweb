@@ -4,6 +4,11 @@ import { SIDE_BASE_FRONT_SPRITE } from '../src/assets/structures/side-base/base_
 import { SIDE_BASE_BACK_SPRITE } from '../src/assets/structures/side-base/base_back.sprite.js';
 import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_front_destroyed.sprite.js';
 import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_back_destroyed.runtime.js';
+import {
+  SIDE_BASE_DESTRUCTION_FX,
+  getSideBaseShakeOffset,
+  getSmokePuffs,
+} from '../src/effects/sideBaseDestructionFx.js';
 
 const RUN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -48,6 +53,20 @@ assert.equal(frontDestroyedVisible, 1064, 'A frente destruída deve preservar os
 assert.equal(backDestroyedVisible, 1032, 'As costas destruídas devem preservar os pixels serializados do novo sprite.');
 assert.notEqual(SIDE_BASE_FRONT_DESTROYED_SPRITE.runs, SIDE_BASE_BACK_DESTROYED_SPRITE.runs, 'Frente e costas destruídas precisam ser artes diferentes.');
 
+assert.equal(SIDE_BASE_DESTRUCTION_FX.shakeDuration, 0.18);
+assert.equal(SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 1.6);
+assert.equal(SIDE_BASE_DESTRUCTION_FX.smokePuffCount, 4);
+const shake = getSideBaseShakeOffset(1.234, SIDE_BASE_DESTRUCTION_FX.shakeDuration);
+assert.ok(Math.abs(shake.x) <= SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 'Tremor horizontal deve permanecer bem suave.');
+assert.ok(Math.abs(shake.y) <= SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 'Tremor vertical deve permanecer bem suave.');
+assert.deepEqual(getSideBaseShakeOffset(1.234, 0), { x: 0, y: 0 }, 'Tremor deve cessar após a janela curta.');
+const smokeA = getSmokePuffs(0.2, 100, 200);
+const smokeB = getSmokePuffs(0.8, 100, 200);
+assert.equal(smokeA.length, 4);
+assert.equal(smokeB.length, 4);
+assert.ok(smokeA.every((puff) => puff.alpha >= 0 && puff.alpha <= 0.34), 'Fumaça deve ser translúcida.');
+assert.notDeepEqual(smokeA.map(({ y }) => y), smokeB.map(({ y }) => y), 'Fumaça deve subir ao longo do tempo.');
+
 const offscreenCanvases = [];
 globalThis.document = {
   createElement(tagName) {
@@ -77,7 +96,7 @@ globalThis.document = {
 const {
   SideBaseStructure,
   SIDE_BASE_VISUAL_META,
-} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0630-destroyed');
+} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0631-fx');
 
 delete globalThis.document;
 
@@ -100,10 +119,12 @@ assert.equal(SIDE_BASE_VISUAL_META.enemyDestroyedAsset, 'base_front_destroyed.sp
 assert.equal(SIDE_BASE_VISUAL_META.playerDestroyedAsset, 'base_back_destroyed.runtime.js');
 assert.equal(SIDE_BASE_VISUAL_META.destroyedSwapCondition, 'hp<=0');
 assert.equal(SIDE_BASE_VISUAL_META.destroyedUsesTeamPerspective, true);
+assert.equal(SIDE_BASE_VISUAL_META.smokeOnDestroyed, true);
+assert.equal(SIDE_BASE_VISUAL_META.shakePulseOnDestroy, true);
 assert.equal(SIDE_BASE_VISUAL_META.storageFormat, 'text-rle-pixel-sprite');
 assert.equal(SIDE_BASE_VISUAL_META.imageSmoothing, false);
 assert.equal(SIDE_BASE_VISUAL_META.gameplayHitRadiusUnchanged, 22);
-assert.equal(SIDE_BASE_VISUAL_META.release, '0.6.30');
+assert.equal(SIDE_BASE_VISUAL_META.release, '0.6.31');
 
 function makeCtx() {
   const calls = [];
@@ -111,7 +132,7 @@ function makeCtx() {
     calls,
     fillStyle: '', font: '', textAlign: '', textBaseline: '', globalAlpha: 1,
     imageSmoothingEnabled: true,
-    fillRect(...args) { calls.push({ type: 'fillRect', args }); },
+    fillRect(...args) { calls.push({ type: 'fillRect', args, fillStyle: this.fillStyle, alpha: this.globalAlpha }); },
     fillText(...args) { calls.push({ type: 'fillText', args }); },
     drawImage(...args) { calls.push({ type: 'drawImage', args }); },
     save() {}, restore() {},
@@ -124,7 +145,7 @@ for (const base of bases) {
   assert.deepEqual(
     { hp: base.hp, range: base.range, damage: base.damage, attackDelay: base.attackDelay, startsActive: base.startsActive },
     { hp: 1200, range: 82, damage: 20, attackDelay: 0.95, startsActive: true },
-    `${base.id}: a troca visual não pode alterar as mecânicas.`,
+    `${base.id}: efeitos não podem alterar as mecânicas.`,
   );
 
   const structure = new SideBaseStructure({ ...base });
@@ -136,11 +157,14 @@ for (const base of bases) {
   assert.ok(aliveDraw, `${base.id}: viva deve desenhar o sprite normal.`);
   const expectedAliveCanvas = base.team === 'enemy' ? offscreenCanvases[0] : offscreenCanvases[1];
   assert.equal(aliveDraw.args[0], expectedAliveCanvas, `${base.id}: viva deve usar ${base.team === 'enemy' ? 'frente' : 'costas'}.`);
-  assert.equal(aliveDraw.args[3], 70);
-  assert.equal(aliveDraw.args[4], 44);
 
-  structure.hp = 0;
-  assert.equal(structure.alive, false, `${base.id}: HP zero deve marcar a base como destruída.`);
+  structure.takeDamage(base.hp);
+  assert.equal(structure.alive, false, `${base.id}: dano final deve destruir a base.`);
+  assert.equal(structure.consumeDestructionShake(), true, `${base.id}: destruição deve emitir um pulso de tremor.`);
+  assert.equal(structure.consumeDestructionShake(), false, `${base.id}: pulso deve ser consumido uma única vez.`);
+  structure.update(0.24, []);
+  assert.ok(structure.destroyedFxAge >= 0.24, `${base.id}: relógio da fumaça deve continuar após a destruição.`);
+
   const destroyedCtx = makeCtx();
   structure.draw(destroyedCtx, GAME_CONFIG.palette);
   const destroyedDraw = destroyedCtx.calls.find(({ type }) => type === 'drawImage');
@@ -150,6 +174,8 @@ for (const base of bases) {
   assert.equal(destroyedDraw.args[3], 70);
   assert.equal(destroyedDraw.args[4], 44);
   assert.equal(destroyedCtx.calls.some(({ type }) => type === 'fillText'), false, `${base.id}: destruída não deve exibir barra/texto de HP.`);
+  const smokeCalls = destroyedCtx.calls.filter(({ type, alpha }) => type === 'fillRect' && alpha > 0 && alpha < 1);
+  assert.ok(smokeCalls.length >= 4, `${base.id}: escombros devem emitir múltiplos puffs de fumaça translúcida.`);
 }
 
 console.log('side-base-visual.test.js: PASS');
