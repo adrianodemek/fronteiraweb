@@ -4,8 +4,8 @@ const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
 
 export const SIDE_BASE_ASSET_PATHS = Object.freeze({
-  front: new URL('../assets/structures/side-base/base_front.png?v=0.6.27', import.meta.url).href,
-  back: new URL('../assets/structures/side-base/base_back.png?v=0.6.27', import.meta.url).href,
+  front: new URL('../assets/structures/side-base/base_front.png?v=0.6.28', import.meta.url).href,
+  back: new URL('../assets/structures/side-base/base_back.png?v=0.6.28', import.meta.url).href,
 });
 
 function createSprite(src) {
@@ -59,7 +59,6 @@ export class SideBaseStructure extends Structure {
 
       if (canSave) ctx.restore();
     } else {
-      // Mantém o desenho procedural antigo apenas como fallback de carregamento.
       super.drawSideBase(ctx, palette, x, y, w, h, body, light);
     }
 
@@ -70,6 +69,8 @@ export class SideBaseStructure extends Structure {
 export const SIDE_BASE_VISUAL_META = Object.freeze({
   width: SIDE_BASE_WIDTH,
   height: SIDE_BASE_HEIGHT,
+  sourceWidth: 64,
+  sourceHeight: 40,
   spriteBased: true,
   assetDirectory: 'src/assets/structures/side-base/',
   enemyView: 'front',
@@ -78,8 +79,9 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   backAsset: 'base_back.png',
   sameVisualSizeBothTeams: true,
   transparentBackground: true,
+  visiblePixelValidation: true,
   pixelArt: true,
   imageSmoothing: false,
   gameplayHitRadiusUnchanged: 22,
-  release: '0.6.27',
+  release: '0.6.28',
 });
