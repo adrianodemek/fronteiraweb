@@ -1,11 +1,11 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
 import { Structure } from '../entities/Structure.js?v=0.6.23';
 import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.29';
-import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.33';
+import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.34';
 import {
   SIDE_BASE_DESTRUCTION_FX,
   getSideBaseShakeOffset,
-} from '../effects/sideBaseDestructionFx.js?v=0.6.33';
+} from '../effects/sideBaseDestructionFx.js?v=0.6.34';
 
 // QGs e bases laterais usam classes visuais dedicadas, mantendo a lógica
 // original de HP, alcance, colisão, dano, cadência e posição.
@@ -39,8 +39,6 @@ export class Game extends LegacyGame {
   update(dt) {
     this.sideBaseShakeRemaining = Math.max(0, (this.sideBaseShakeRemaining ?? 0) - dt);
 
-    // Guardamos o estado real antes do update completo. Assim a destruição é
-    // detectada mesmo se o HP chegar a zero por qualquer caminho de dano.
     const aliveBeforeUpdate = new Map(
       this.structures
         .filter((structure) => structure.kind === 'base')

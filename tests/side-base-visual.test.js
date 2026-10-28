@@ -53,19 +53,28 @@ assert.equal(frontDestroyedVisible, 1064, 'A frente destruída deve preservar os
 assert.equal(backDestroyedVisible, 1032, 'As costas destruídas devem preservar os pixels serializados do novo sprite.');
 assert.notEqual(SIDE_BASE_FRONT_DESTROYED_SPRITE.runs, SIDE_BASE_BACK_DESTROYED_SPRITE.runs, 'Frente e costas destruídas precisam ser artes diferentes.');
 
-assert.equal(SIDE_BASE_DESTRUCTION_FX.shakeDuration, 0.24);
+assert.equal(SIDE_BASE_DESTRUCTION_FX.shakeDuration, 1.1);
 assert.equal(SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 2.2);
-assert.equal(SIDE_BASE_DESTRUCTION_FX.smokePuffCount, 6);
-assert.equal(SIDE_BASE_DESTRUCTION_FX.smokeMaxAlpha, 0.5);
-const shake = getSideBaseShakeOffset(1.234, SIDE_BASE_DESTRUCTION_FX.shakeDuration);
-assert.ok(Math.abs(shake.x) <= SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 'Tremor horizontal deve permanecer suave.');
-assert.ok(Math.abs(shake.y) <= SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 'Tremor vertical deve permanecer suave.');
-assert.deepEqual(getSideBaseShakeOffset(1.234, 0), { x: 0, y: 0 }, 'Tremor deve cessar após a janela curta.');
+assert.equal(SIDE_BASE_DESTRUCTION_FX.shakeDecayPower, 1.6);
+assert.equal(SIDE_BASE_DESTRUCTION_FX.smokePuffCount, 8);
+assert.equal(SIDE_BASE_DESTRUCTION_FX.smokeRise, 34);
+assert.equal(SIDE_BASE_DESTRUCTION_FX.smokeMaxAlpha, 0.56);
+
+const shakeFull = getSideBaseShakeOffset(1.234, SIDE_BASE_DESTRUCTION_FX.shakeDuration);
+const shakeHalf = getSideBaseShakeOffset(1.234, SIDE_BASE_DESTRUCTION_FX.shakeDuration * 0.5);
+const shakeQuarter = getSideBaseShakeOffset(1.234, SIDE_BASE_DESTRUCTION_FX.shakeDuration * 0.25);
+assert.ok(Math.abs(shakeFull.x) <= SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 'Tremor horizontal deve permanecer suave.');
+assert.ok(Math.abs(shakeFull.y) <= SIDE_BASE_DESTRUCTION_FX.shakeAmplitude, 'Tremor vertical deve permanecer suave.');
+assert.ok(Math.abs(shakeHalf.x) < Math.abs(shakeFull.x), 'Tremor deve perder força pela metade da duração.');
+assert.ok(Math.abs(shakeQuarter.x) < Math.abs(shakeHalf.x), 'Tremor deve continuar perdendo força até desaparecer.');
+assert.deepEqual(getSideBaseShakeOffset(1.234, 0), { x: 0, y: 0 }, 'Tremor deve cessar ao fim de 1,1 s.');
+
 const smokeA = getSmokePuffs(0.2, 100, 200);
-const smokeB = getSmokePuffs(0.8, 100, 200);
-assert.equal(smokeA.length, 6);
-assert.equal(smokeB.length, 6);
-assert.ok(smokeA.every((puff) => puff.alpha >= 0 && puff.alpha <= 0.5), 'Fumaça deve ser translúcida, mas visível.');
+const smokeB = getSmokePuffs(0.9, 100, 200);
+assert.equal(smokeA.length, 8);
+assert.equal(smokeB.length, 8);
+assert.ok(smokeA.every((puff) => puff.alpha >= 0 && puff.alpha <= 0.56), 'Fumaça deve continuar translúcida, porém mais encorpada.');
+assert.ok(smokeA.some((puff) => puff.size >= 5), 'Fumaça deve usar puffs maiores.');
 assert.notDeepEqual(smokeA.map(({ y }) => y), smokeB.map(({ y }) => y), 'Fumaça deve subir ao longo do tempo.');
 
 const offscreenCanvases = [];
@@ -97,7 +106,7 @@ globalThis.document = {
 const {
   SideBaseStructure,
   SIDE_BASE_VISUAL_META,
-} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0633-fx');
+} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0634-fx');
 
 delete globalThis.document;
 
@@ -122,11 +131,12 @@ assert.equal(SIDE_BASE_VISUAL_META.destroyedSwapCondition, 'hp<=0');
 assert.equal(SIDE_BASE_VISUAL_META.destroyedUsesTeamPerspective, true);
 assert.equal(SIDE_BASE_VISUAL_META.smokeOnDestroyed, true);
 assert.equal(SIDE_BASE_VISUAL_META.shakePulseOnDestroy, true);
+assert.equal(SIDE_BASE_VISUAL_META.shakeDecay, true);
 assert.equal(SIDE_BASE_VISUAL_META.runtimeTransitionDetection, true);
 assert.equal(SIDE_BASE_VISUAL_META.storageFormat, 'text-rle-pixel-sprite');
 assert.equal(SIDE_BASE_VISUAL_META.imageSmoothing, false);
 assert.equal(SIDE_BASE_VISUAL_META.gameplayHitRadiusUnchanged, 22);
-assert.equal(SIDE_BASE_VISUAL_META.release, '0.6.33');
+assert.equal(SIDE_BASE_VISUAL_META.release, '0.6.34');
 
 function makeCtx() {
   const calls = [];
@@ -177,7 +187,7 @@ for (const base of bases) {
   assert.equal(destroyedDraw.args[4], 44);
   assert.equal(destroyedCtx.calls.some(({ type }) => type === 'fillText'), false, `${base.id}: destruída não deve exibir barra/texto de HP.`);
   const smokeCalls = destroyedCtx.calls.filter(({ type, alpha }) => type === 'fillRect' && alpha > 0 && alpha < 1);
-  assert.ok(smokeCalls.length >= 7, `${base.id}: escombros devem emitir foco + múltiplos puffs de fumaça translúcida.`);
+  assert.ok(smokeCalls.length >= 9, `${base.id}: escombros devem emitir foco + fumaça mais encorpada.`);
 }
 
 console.log('side-base-visual.test.js: PASS');

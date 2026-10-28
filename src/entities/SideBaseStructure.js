@@ -3,7 +3,7 @@ import { SIDE_BASE_FRONT_SPRITE } from '../assets/structures/side-base/base_fron
 import { SIDE_BASE_BACK_SPRITE } from '../assets/structures/side-base/base_back.sprite.js?v=0.6.28';
 import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../assets/structures/side-base/base_front_destroyed.sprite.js?v=0.6.30';
 import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../assets/structures/side-base/base_back_destroyed.runtime.js?v=0.6.30';
-import { getSmokePuffs } from '../effects/sideBaseDestructionFx.js?v=0.6.33';
+import { getSmokePuffs } from '../effects/sideBaseDestructionFx.js?v=0.6.34';
 
 const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
@@ -75,17 +75,16 @@ function drawSmoke(ctx, age, centerX, baseY) {
 
   const previousAlpha = 'globalAlpha' in ctx ? ctx.globalAlpha : 1;
 
-  // Pequeno foco escuro deixa claro de onde a fumaça está saindo.
-  if ('globalAlpha' in ctx) ctx.globalAlpha = 0.34;
+  if ('globalAlpha' in ctx) ctx.globalAlpha = 0.38;
   ctx.fillStyle = '#454942';
-  ctx.fillRect(Math.round(centerX - 4), Math.round(baseY - 2), 8, 3);
+  ctx.fillRect(Math.round(centerX - 5), Math.round(baseY - 2), 10, 4);
 
   for (const puff of puffs) {
     if ('globalAlpha' in ctx) ctx.globalAlpha = puff.alpha;
     ctx.fillStyle = puff.shade;
-    ctx.fillRect(puff.x, puff.y, puff.size, Math.max(3, puff.size - 1));
-    if (puff.size >= 5) {
-      ctx.fillRect(puff.x + 2, puff.y - 2, Math.max(2, puff.size - 2), 2);
+    ctx.fillRect(puff.x, puff.y, puff.size, Math.max(4, puff.size - 1));
+    if (puff.size >= 6) {
+      ctx.fillRect(puff.x + 2, puff.y - 2, Math.max(3, puff.size - 2), 3);
     }
   }
   if ('globalAlpha' in ctx) ctx.globalAlpha = previousAlpha;
@@ -164,8 +163,9 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   destroyedSwapCondition: 'hp<=0',
   destroyedUsesTeamPerspective: true,
   smokeOnDestroyed: true,
-  smokeStyle: 'visible-soft-pixel-puffs',
+  smokeStyle: 'larger-soft-pixel-puffs',
   shakePulseOnDestroy: true,
+  shakeDecay: true,
   runtimeTransitionDetection: true,
   storageFormat: 'text-rle-pixel-sprite',
   sameVisualSizeBothTeams: true,
@@ -174,5 +174,5 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   pixelArt: true,
   imageSmoothing: false,
   gameplayHitRadiusUnchanged: 22,
-  release: '0.6.33',
+  release: '0.6.34',
 });
