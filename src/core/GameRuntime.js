@@ -49,7 +49,9 @@ export class Game extends LegacyGame {
 
     ctx.clearRect(0, 0, width, height);
     ctx.save();
-    ctx.translate(Math.round(shake.x), Math.round(shake.y));
+    if (typeof ctx.translate === 'function') {
+      ctx.translate(Math.round(shake.x), Math.round(shake.y));
+    }
 
     this.battlefield.draw(ctx, this.elapsed);
 
