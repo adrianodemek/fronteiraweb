@@ -1,111 +1,86 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { GAME_CONFIG } from '../src/config.js';
+import { HQ_FRONT_PERSPECTIVE_SPRITE } from '../src/assets/structures/hq/hq_front_perspective.sprite.js';
+import { HQ_BACK_PERSPECTIVE_SPRITE } from '../src/assets/structures/hq/hq_back_perspective.sprite.js';
 
-const assignedSources = [];
+const createdSpriteCanvases = [];
 
-class FakeImage {
-  constructor() {
-    this.complete = true;
-    this.naturalWidth = 128;
-    this.naturalHeight = 78;
-    this._src = '';
-    this.onerror = null;
-  }
+globalThis.document = {
+  createElement(tag) {
+    assert.equal(tag, 'canvas');
+    const paintCalls = [];
+    const spriteCanvas = {
+      width: 0,
+      height: 0,
+      __hqView: '',
+      paintCalls,
+      getContext() {
+        return {
+          fillStyle: '',
+          imageSmoothingEnabled: true,
+          fillRect(...args) { paintCalls.push({ color: this.fillStyle, args }); },
+        };
+      },
+    };
+    createdSpriteCanvases.push(spriteCanvas);
+    return spriteCanvas;
+  },
+};
 
-  set src(value) {
-    this._src = value;
-    assignedSources.push(value);
-    this.complete = true;
-    this.naturalWidth = 128;
-    this.naturalHeight = 78;
-  }
-
-  get src() {
-    return this._src;
-  }
-}
-
-function crc32(buffer) {
-  let crc = 0xffffffff;
-  for (const byte of buffer) {
-    crc ^= byte;
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
-    }
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-}
-
-function validatePng(buffer, label) {
-  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  assert.ok(buffer.subarray(0, 8).equals(signature), `${label}: assinatura PNG inválida.`);
-
-  let offset = 8;
-  let sawIHDR = false;
-  let sawIDAT = false;
-  let sawIEND = false;
-
-  while (offset + 12 <= buffer.length) {
-    const length = buffer.readUInt32BE(offset);
-    const typeStart = offset + 4;
-    const dataStart = offset + 8;
-    const dataEnd = dataStart + length;
-    const crcOffset = dataEnd;
-    const chunkEnd = crcOffset + 4;
-
-    assert.ok(chunkEnd <= buffer.length, `${label}: chunk PNG truncado.`);
-
-    const type = buffer.toString('ascii', typeStart, dataStart);
-    const storedCrc = buffer.readUInt32BE(crcOffset);
-    const calculatedCrc = crc32(buffer.subarray(typeStart, dataEnd));
-    assert.equal(calculatedCrc, storedCrc, `${label}: CRC inválido no chunk ${type}.`);
-
-    if (type === 'IHDR') {
-      sawIHDR = true;
-      assert.equal(length, 13, `${label}: IHDR deve ter 13 bytes.`);
-      assert.equal(buffer.readUInt32BE(dataStart), 128, `${label}: largura deve ser 128 px.`);
-      assert.equal(buffer.readUInt32BE(dataStart + 4), 78, `${label}: altura deve ser 78 px.`);
-      assert.ok([3, 6].includes(buffer[dataStart + 9]), `${label}: sprite deve preservar transparência via paleta ou RGBA.`);
-    }
-    if (type === 'IDAT') sawIDAT = true;
-    if (type === 'IEND') {
-      sawIEND = true;
-      offset = chunkEnd;
-      break;
-    }
-
-    offset = chunkEnd;
-  }
-
-  assert.ok(sawIHDR, `${label}: IHDR ausente.`);
-  assert.ok(sawIDAT, `${label}: IDAT ausente.`);
-  assert.ok(sawIEND, `${label}: IEND ausente.`);
-  assert.equal(offset, buffer.length, `${label}: bytes extras após IEND.`);
-}
-
-globalThis.Image = FakeImage;
 const {
   HeadquartersStructure,
-  HQ_RUNTIME_ASSET_PATHS,
-  HQ_RUNTIME_ASSET_FALLBACKS,
   HQ_RUNTIME_META,
-} = await import('../src/entities/HeadquartersStructure.js?hq-runtime-v0626');
-delete globalThis.Image;
+  createHqSpriteCanvas,
+} = await import('../src/entities/HeadquartersStructure.js?hq-runtime-v0629');
 
-assert.match(HQ_RUNTIME_ASSET_PATHS.player, /assets\/structures\/hq_back\.png\?v=0\.6\.26&hq=player-back-restored$/);
-assert.equal(HQ_RUNTIME_ASSET_FALLBACKS.player.length, 1);
-assert.match(HQ_RUNTIME_ASSET_FALLBACKS.player[0], /assets\/structures\/hq\/hq_back\.png\?v=0\.6\.26&hq=player-back-restored-nested$/);
+delete globalThis.document;
+
+for (const [name, sprite] of [
+  ['frontal', HQ_FRONT_PERSPECTIVE_SPRITE],
+  ['traseiro', HQ_BACK_PERSPECTIVE_SPRITE],
+]) {
+  assert.equal(sprite.width, 96, `Sprite ${name} deve ter 96 px de largura.`);
+  assert.equal(sprite.height, 60, `Sprite ${name} deve ter 60 px de altura.`);
+  assert.equal(sprite.pixels.length, 96 * 60, `Sprite ${name} deve ter uma célula por pixel.`);
+  assert.equal(sprite.palette.length % 6, 0, `Paleta do sprite ${name} deve estar íntegra.`);
+  assert.ok(sprite.visiblePixelCount > 4000, `Sprite ${name} precisa ter mais de 4000 pixels visíveis.`);
+  assert.equal(sprite.perspective, 'map-top-down-corrected');
+  assert.equal(sprite.storageFormat, 'text-palette-grid');
+}
+
+assert.equal(HQ_RUNTIME_META.enemyView, 'front');
 assert.equal(HQ_RUNTIME_META.playerView, 'back');
-assert.equal(HQ_RUNTIME_META.restoredFromOriginalSheet, true);
+assert.equal(HQ_RUNTIME_META.sourceWidth, 96);
+assert.equal(HQ_RUNTIME_META.sourceHeight, 60);
+assert.equal(HQ_RUNTIME_META.renderWidth, 140);
+assert.equal(HQ_RUNTIME_META.renderHeight, 88);
+assert.equal(HQ_RUNTIME_META.perspective, 'map-top-down-corrected');
+assert.equal(HQ_RUNTIME_META.gameplayUnchanged, true);
+assert.equal(HQ_RUNTIME_META.release, '0.6.29');
 
-const directBuffer = readFileSync(fileURLToPath(new URL('../src/assets/structures/hq_back.png', import.meta.url)));
-const nestedBuffer = readFileSync(fileURLToPath(new URL('../src/assets/structures/hq/hq_back.png', import.meta.url)));
-
-assert.ok(directBuffer.equals(nestedBuffer), 'As duas rotas devem apontar byte a byte para o mesmo sprite traseiro restaurado.');
-validatePng(directBuffer, 'hq_back.png direto');
-validatePng(nestedBuffer, 'hq_back.png canônico');
+const validationCanvas = (() => {
+  globalThis.document = {
+    createElement() {
+      const paintCalls = [];
+      return {
+        width: 0,
+        height: 0,
+        paintCalls,
+        getContext() {
+          return {
+            fillStyle: '',
+            imageSmoothingEnabled: true,
+            fillRect(...args) { paintCalls.push({ color: this.fillStyle, args }); },
+          };
+        },
+      };
+    },
+  };
+  const result = createHqSpriteCanvas(HQ_FRONT_PERSPECTIVE_SPRITE, 'front-validation');
+  delete globalThis.document;
+  return result;
+})();
+assert.ok(validationCanvas.paintCalls.length > 1500, 'A arte frontal precisa reconstruir muitos trechos reais de pixels.');
 
 function makeCtx() {
   const calls = [];
@@ -126,15 +101,40 @@ function makeCtx() {
 }
 
 const playerData = GAME_CONFIG.structures.find(({ id }) => id === 'player-hq');
+const enemyData = GAME_CONFIG.structures.find(({ id }) => id === 'enemy-hq');
+
+assert.deepEqual(
+  { x: playerData.x, y: playerData.y, hp: playerData.hp, range: playerData.range, damage: playerData.damage, attackDelay: playerData.attackDelay, startsActive: playerData.startsActive },
+  { x: 180, y: 573, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
+);
+assert.deepEqual(
+  { x: enemyData.x, y: enemyData.y, hp: enemyData.hp, range: enemyData.range, damage: enemyData.damage, attackDelay: enemyData.attackDelay, startsActive: enemyData.startsActive },
+  { x: 180, y: 135, hp: 2200, range: 92, damage: 26, attackDelay: 0.9, startsActive: false },
+);
+
 const playerHq = new HeadquartersStructure({ ...playerData });
+const enemyHq = new HeadquartersStructure({ ...enemyData });
 playerHq.active = true;
+enemyHq.active = true;
 
-const ctx = makeCtx();
-playerHq.draw(ctx, GAME_CONFIG.palette);
-const draw = ctx.calls.find(({ type }) => type === 'drawImage');
+assert.equal(playerHq.hitRadius, 28);
+assert.equal(enemyHq.hitRadius, 28);
 
-assert.ok(draw, 'O QG do jogador deve ser desenhado pelo PNG restaurado.');
-assert.match(draw.args[0].src, /hq_back\.png\?v=0\.6\.26&hq=player-back-restored$/);
-assert.equal(ctx.imageSmoothingEnabled, false, 'O sprite traseiro deve continuar em pixel art sem suavização.');
+const playerCtx = makeCtx();
+const enemyCtx = makeCtx();
+playerHq.draw(playerCtx, GAME_CONFIG.palette);
+enemyHq.draw(enemyCtx, GAME_CONFIG.palette);
+
+const playerDraw = playerCtx.calls.find(({ type }) => type === 'drawImage');
+const enemyDraw = enemyCtx.calls.find(({ type }) => type === 'drawImage');
+
+assert.ok(playerDraw, 'QG do jogador deve usar o novo sprite.');
+assert.ok(enemyDraw, 'QG inimigo deve usar o novo sprite.');
+assert.equal(playerDraw.args[0].__hqView, 'back', 'Jogador deve mostrar as costas do QG.');
+assert.equal(enemyDraw.args[0].__hqView, 'front', 'Inimigo deve mostrar a frente do QG.');
+assert.deepEqual(playerDraw.args.slice(1), [110, 558, 140, 88]);
+assert.deepEqual(enemyDraw.args.slice(1), [110, 62, 140, 88]);
+assert.equal(playerCtx.imageSmoothingEnabled, false);
+assert.equal(enemyCtx.imageSmoothingEnabled, false);
 
 console.log('hq-runtime-asset.test.js: PASS');
