@@ -1,4 +1,4 @@
-import { BattleGame } from './core/BattleGame.js?v=0.6.33';
+import { BattleGame } from './core/BattleGame.js?v=0.6.34';
 import { setupFullscreenButton } from './ui/fullscreen.js?v=0.6.32';
 
 const canvas = document.querySelector('#game');
