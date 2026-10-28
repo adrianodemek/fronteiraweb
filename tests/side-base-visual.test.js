@@ -3,7 +3,7 @@ import { GAME_CONFIG } from '../src/config.js';
 import { SIDE_BASE_FRONT_SPRITE } from '../src/assets/structures/side-base/base_front.sprite.js';
 import { SIDE_BASE_BACK_SPRITE } from '../src/assets/structures/side-base/base_back.sprite.js';
 import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_front_destroyed.sprite.js';
-import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_back_destroyed.sprite.js';
+import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../src/assets/structures/side-base/base_back_destroyed.runtime.js';
 
 const RUN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -40,7 +40,7 @@ function validateSpriteDefinition(definition, label, expectedWidth, expectedHeig
 const frontVisible = validateSpriteDefinition(SIDE_BASE_FRONT_SPRITE, 'base_front.sprite.js', 64, 40, 1500);
 const backVisible = validateSpriteDefinition(SIDE_BASE_BACK_SPRITE, 'base_back.sprite.js', 64, 40, 1500);
 const frontDestroyedVisible = validateSpriteDefinition(SIDE_BASE_FRONT_DESTROYED_SPRITE, 'base_front_destroyed.sprite.js', 48, 30, 900);
-const backDestroyedVisible = validateSpriteDefinition(SIDE_BASE_BACK_DESTROYED_SPRITE, 'base_back_destroyed.sprite.js', 48, 30, 900);
+const backDestroyedVisible = validateSpriteDefinition(SIDE_BASE_BACK_DESTROYED_SPRITE, 'base_back_destroyed.runtime.js', 48, 30, 900);
 
 assert.equal(frontVisible, 2164, 'A frente normal deve preservar o sprite aprovado.');
 assert.equal(backVisible, 2127, 'As costas normais devem preservar o sprite aprovado.');
@@ -97,7 +97,7 @@ assert.equal(SIDE_BASE_VISUAL_META.destroyedSourceHeight, 30);
 assert.equal(SIDE_BASE_VISUAL_META.enemyView, 'front');
 assert.equal(SIDE_BASE_VISUAL_META.playerView, 'back');
 assert.equal(SIDE_BASE_VISUAL_META.enemyDestroyedAsset, 'base_front_destroyed.sprite.js');
-assert.equal(SIDE_BASE_VISUAL_META.playerDestroyedAsset, 'base_back_destroyed.sprite.js');
+assert.equal(SIDE_BASE_VISUAL_META.playerDestroyedAsset, 'base_back_destroyed.runtime.js');
 assert.equal(SIDE_BASE_VISUAL_META.destroyedSwapCondition, 'hp<=0');
 assert.equal(SIDE_BASE_VISUAL_META.destroyedUsesTeamPerspective, true);
 assert.equal(SIDE_BASE_VISUAL_META.storageFormat, 'text-rle-pixel-sprite');
