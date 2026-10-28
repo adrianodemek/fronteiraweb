@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/layout.test.js && node tests/navigation.test.js && node tests/structure-collision.test.js && node tests/line-of-sight.test.js && node tests/side-base-detour.test.js && node tests/structure-range.test.js && node tests/ground-visual.test.js && node tests/river-visual.test.js && node tests/bridge-visual.test.js && node tests/deployment.test.js && node tests/game-deployment.test.js && node tests/hq-activation.test.js && node tests/hq-visual.test.js && node tests/hq-runtime-asset.test.js && node tests/supply.test.js && node tests/cards.test.js && node tests/unit-types.test.js && node tests/runtime-click.test.js && node tests/roster.test.js"
+    "test": "node tests/layout.test.js && node tests/navigation.test.js && node tests/structure-collision.test.js && node tests/line-of-sight.test.js && node tests/side-base-detour.test.js && node tests/structure-range.test.js && node tests/ground-visual.test.js && node tests/river-visual.test.js && node tests/bridge-visual.test.js && node tests/deployment.test.js && node tests/game-deployment.test.js && node tests/hq-activation.test.js && node tests/hq-visual.test.js && node tests/hq-runtime-asset.test.js && node tests/side-base-visual.test.js && node tests/supply.test.js && node tests/cards.test.js && node tests/unit-types.test.js && node tests/runtime-click.test.js && node tests/roster.test.js"
   }
 }
