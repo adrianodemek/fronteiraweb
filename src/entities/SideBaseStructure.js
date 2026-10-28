@@ -2,7 +2,7 @@ import { Structure } from './Structure.js?v=0.6.23';
 import { SIDE_BASE_FRONT_SPRITE } from '../assets/structures/side-base/base_front.sprite.js?v=0.6.28';
 import { SIDE_BASE_BACK_SPRITE } from '../assets/structures/side-base/base_back.sprite.js?v=0.6.28';
 import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../assets/structures/side-base/base_front_destroyed.sprite.js?v=0.6.30';
-import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../assets/structures/side-base/base_back_destroyed.sprite.js?v=0.6.30';
+import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../assets/structures/side-base/base_back_destroyed.runtime.js?v=0.6.30';
 
 const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
@@ -113,7 +113,7 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   frontAsset: 'base_front.sprite.js',
   backAsset: 'base_back.sprite.js',
   enemyDestroyedAsset: 'base_front_destroyed.sprite.js',
-  playerDestroyedAsset: 'base_back_destroyed.sprite.js',
+  playerDestroyedAsset: 'base_back_destroyed.runtime.js',
   destroyedSwapCondition: 'hp<=0',
   destroyedUsesTeamPerspective: true,
   storageFormat: 'text-rle-pixel-sprite',
