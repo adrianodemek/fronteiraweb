@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { inflateSync } from 'node:zlib';
 import { GAME_CONFIG } from '../src/config.js';
 
 class FakeImage {
   constructor() {
     this.complete = true;
-    this.naturalWidth = 96;
-    this.naturalHeight = 60;
+    this.naturalWidth = 64;
+    this.naturalHeight = 40;
     this.decoding = '';
     this._src = '';
   }
@@ -20,43 +21,114 @@ const {
   SideBaseStructure,
   SIDE_BASE_ASSET_PATHS,
   SIDE_BASE_VISUAL_META,
-} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0627');
+} = await import('../src/entities/SideBaseStructure.js?side-base-visual-v0628');
 delete globalThis.Image;
 
 assert.equal(SIDE_BASE_VISUAL_META.width, 70);
 assert.equal(SIDE_BASE_VISUAL_META.height, 44);
+assert.equal(SIDE_BASE_VISUAL_META.sourceWidth, 64);
+assert.equal(SIDE_BASE_VISUAL_META.sourceHeight, 40);
 assert.equal(SIDE_BASE_VISUAL_META.enemyView, 'front');
 assert.equal(SIDE_BASE_VISUAL_META.playerView, 'back');
-assert.equal(SIDE_BASE_VISUAL_META.frontAsset, 'base_front.png');
-assert.equal(SIDE_BASE_VISUAL_META.backAsset, 'base_back.png');
-assert.equal(SIDE_BASE_VISUAL_META.transparentBackground, true);
-assert.equal(SIDE_BASE_VISUAL_META.pixelArt, true);
-assert.equal(SIDE_BASE_VISUAL_META.imageSmoothing, false);
+assert.equal(SIDE_BASE_VISUAL_META.visiblePixelValidation, true);
 assert.equal(SIDE_BASE_VISUAL_META.gameplayHitRadiusUnchanged, 22);
-assert.match(SIDE_BASE_ASSET_PATHS.front, /assets\/structures\/side-base\/base_front\.png\?v=0\.6\.27$/);
-assert.match(SIDE_BASE_ASSET_PATHS.back, /assets\/structures\/side-base\/base_back\.png\?v=0\.6\.27$/);
+assert.match(SIDE_BASE_ASSET_PATHS.front, /base_front\.png\?v=0\.6\.28$/);
+assert.match(SIDE_BASE_ASSET_PATHS.back, /base_back\.png\?v=0\.6\.28$/);
 
-function assertTransparentPng(relativePath) {
+function paeth(a, b, c) {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+}
+
+function assertPngHasVisiblePixels(relativePath) {
   const buffer = readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)));
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  assert.ok(buffer.subarray(0, 8).equals(signature), `${relativePath} deve ser PNG válido.`);
+  assert.ok(buffer.subarray(0, 8).equals(signature), `${relativePath}: PNG inválido.`);
+
   let offset = 8;
-  let colorType = null;
-  let hasTransparencyChunk = false;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = -1;
+  let transparency = null;
+  const idat = [];
+
   while (offset + 12 <= buffer.length) {
     const length = buffer.readUInt32BE(offset);
     const type = buffer.toString('ascii', offset + 4, offset + 8);
     const dataStart = offset + 8;
-    if (type === 'IHDR') colorType = buffer[dataStart + 9];
-    else if (type === 'tRNS') hasTransparencyChunk = true;
-    offset = dataStart + length + 4;
+    const dataEnd = dataStart + length;
+    assert.ok(dataEnd + 4 <= buffer.length, `${relativePath}: chunk truncado.`);
+
+    if (type === 'IHDR') {
+      width = buffer.readUInt32BE(dataStart);
+      height = buffer.readUInt32BE(dataStart + 4);
+      bitDepth = buffer[dataStart + 8];
+      colorType = buffer[dataStart + 9];
+    } else if (type === 'tRNS') {
+      transparency = buffer.subarray(dataStart, dataEnd);
+    } else if (type === 'IDAT') {
+      idat.push(buffer.subarray(dataStart, dataEnd));
+    }
+
+    offset = dataEnd + 4;
     if (type === 'IEND') break;
   }
-  assert.ok(colorType === 4 || colorType === 6 || hasTransparencyChunk, `${relativePath} precisa ter transparência real.`);
+
+  assert.equal(width, 64, `${relativePath}: largura fonte incorreta.`);
+  assert.equal(height, 40, `${relativePath}: altura fonte incorreta.`);
+  assert.equal(bitDepth, 8, `${relativePath}: bit depth inesperado.`);
+  assert.equal(colorType, 3, `${relativePath}: o sprite deve ser PNG indexado.`);
+  assert.ok(transparency, `${relativePath}: transparência tRNS ausente.`);
+  assert.ok(idat.length > 0, `${relativePath}: IDAT ausente.`);
+
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width;
+  const rows = [];
+  let cursor = 0;
+
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[cursor++];
+    const source = raw.subarray(cursor, cursor + stride);
+    cursor += stride;
+    const row = Buffer.alloc(stride);
+    const previous = rows[y - 1] ?? Buffer.alloc(stride);
+
+    for (let x = 0; x < stride; x += 1) {
+      const left = x > 0 ? row[x - 1] : 0;
+      const up = previous[x] ?? 0;
+      const upperLeft = x > 0 ? previous[x - 1] : 0;
+      const value = source[x];
+
+      if (filter === 0) row[x] = value;
+      else if (filter === 1) row[x] = (value + left) & 255;
+      else if (filter === 2) row[x] = (value + up) & 255;
+      else if (filter === 3) row[x] = (value + Math.floor((left + up) / 2)) & 255;
+      else if (filter === 4) row[x] = (value + paeth(left, up, upperLeft)) & 255;
+      else assert.fail(`${relativePath}: filtro PNG desconhecido ${filter}.`);
+    }
+    rows.push(row);
+  }
+
+  let visiblePixels = 0;
+  let transparentPixels = 0;
+  for (const row of rows) {
+    for (const paletteIndex of row) {
+      const alpha = paletteIndex < transparency.length ? transparency[paletteIndex] : 255;
+      if (alpha > 0) visiblePixels += 1;
+      else transparentPixels += 1;
+    }
+  }
+
+  assert.ok(visiblePixels > 1500, `${relativePath}: sprite precisa conter pixels visíveis reais.`);
+  assert.ok(transparentPixels > 100, `${relativePath}: fundo precisa continuar transparente.`);
 }
 
-assertTransparentPng('../src/assets/structures/side-base/base_front.png');
-assertTransparentPng('../src/assets/structures/side-base/base_back.png');
+assertPngHasVisiblePixels('../src/assets/structures/side-base/base_front.png');
+assertPngHasVisiblePixels('../src/assets/structures/side-base/base_back.png');
 
 function makeCtx() {
   const calls = [];
@@ -88,14 +160,14 @@ for (const base of bases) {
   assert.ok(draw, `${base.id}: deve usar sprite PNG.`);
 
   if (base.team === 'enemy') {
-    assert.match(draw.args[0].src, /base_front\.png\?v=0\.6\.27$/, `${base.id}: inimigo deve mostrar a frente.`);
+    assert.match(draw.args[0].src, /base_front\.png\?v=0\.6\.28$/, `${base.id}: inimigo deve mostrar a frente.`);
   } else {
-    assert.match(draw.args[0].src, /base_back\.png\?v=0\.6\.27$/, `${base.id}: jogador deve mostrar as costas.`);
+    assert.match(draw.args[0].src, /base_back\.png\?v=0\.6\.28$/, `${base.id}: jogador deve mostrar as costas.`);
   }
 
-  assert.equal(draw.args[3], 70, `${base.id}: largura visual deve ser 70.`);
-  assert.equal(draw.args[4], 44, `${base.id}: altura visual deve ser 44.`);
-  assert.equal(ctx.imageSmoothingEnabled, false, `${base.id}: pixel art sem suavização.`);
+  assert.equal(draw.args[3], 70);
+  assert.equal(draw.args[4], 44);
+  assert.equal(ctx.imageSmoothingEnabled, false);
 }
 
 console.log('side-base-visual.test.js: PASS');
