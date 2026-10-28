@@ -1,14 +1,18 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
 import { Structure } from '../entities/Structure.js?v=0.6.23';
 import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.26';
+import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.27';
 
-// Mantemos a lógica das estruturas estável, mas os QGs usam uma classe visual
-// dedicada. Isso fixa explicitamente player-hq na visão de costas e enemy-hq
-// na visão frontal, sem alterar HP, alcance, colisão ou posição lógica.
+// QGs e bases laterais usam classes visuais dedicadas, mantendo a lógica
+// original de HP, alcance, colisão, dano, cadência e posição.
 export class Game extends LegacyGame {
   reset() {
     this.structures = this.config.structures.map((data) => {
-      const StructureClass = data.kind === 'hq' ? HeadquartersStructure : Structure;
+      const StructureClass = data.kind === 'hq'
+        ? HeadquartersStructure
+        : data.kind === 'base'
+          ? SideBaseStructure
+          : Structure;
       return new StructureClass({ ...data });
     });
     this.units = [];
