@@ -1,6 +1,6 @@
 import { Game as LegacyGame } from './Game.js?v=0.6.0';
 import { Structure } from '../entities/Structure.js?v=0.6.23';
-import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.26';
+import { HeadquartersStructure } from '../entities/HeadquartersStructure.js?v=0.6.29';
 import { SideBaseStructure } from '../entities/SideBaseStructure.js?v=0.6.28';
 
 // QGs e bases laterais usam classes visuais dedicadas, mantendo a lógica
