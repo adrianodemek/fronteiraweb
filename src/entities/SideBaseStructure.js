@@ -3,7 +3,7 @@ import { SIDE_BASE_FRONT_SPRITE } from '../assets/structures/side-base/base_fron
 import { SIDE_BASE_BACK_SPRITE } from '../assets/structures/side-base/base_back.sprite.js?v=0.6.28';
 import { SIDE_BASE_FRONT_DESTROYED_SPRITE } from '../assets/structures/side-base/base_front_destroyed.sprite.js?v=0.6.30';
 import { SIDE_BASE_BACK_DESTROYED_SPRITE } from '../assets/structures/side-base/base_back_destroyed.runtime.js?v=0.6.30';
-import { getSmokePuffs } from '../effects/sideBaseDestructionFx.js?v=0.6.31';
+import { getSmokePuffs } from '../effects/sideBaseDestructionFx.js?v=0.6.33';
 
 const SIDE_BASE_WIDTH = 70;
 const SIDE_BASE_HEIGHT = 44;
@@ -74,10 +74,16 @@ function drawSmoke(ctx, age, centerX, baseY) {
   if (canSave) ctx.save();
 
   const previousAlpha = 'globalAlpha' in ctx ? ctx.globalAlpha : 1;
+
+  // Pequeno foco escuro deixa claro de onde a fumaça está saindo.
+  if ('globalAlpha' in ctx) ctx.globalAlpha = 0.34;
+  ctx.fillStyle = '#454942';
+  ctx.fillRect(Math.round(centerX - 4), Math.round(baseY - 2), 8, 3);
+
   for (const puff of puffs) {
     if ('globalAlpha' in ctx) ctx.globalAlpha = puff.alpha;
     ctx.fillStyle = puff.shade;
-    ctx.fillRect(puff.x, puff.y, puff.size, Math.max(2, puff.size - 1));
+    ctx.fillRect(puff.x, puff.y, puff.size, Math.max(3, puff.size - 1));
     if (puff.size >= 5) {
       ctx.fillRect(puff.x + 2, puff.y - 2, Math.max(2, puff.size - 2), 2);
     }
@@ -158,8 +164,9 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   destroyedSwapCondition: 'hp<=0',
   destroyedUsesTeamPerspective: true,
   smokeOnDestroyed: true,
-  smokeStyle: 'soft-pixel-puffs',
+  smokeStyle: 'visible-soft-pixel-puffs',
   shakePulseOnDestroy: true,
+  runtimeTransitionDetection: true,
   storageFormat: 'text-rle-pixel-sprite',
   sameVisualSizeBothTeams: true,
   transparentBackground: true,
@@ -167,5 +174,5 @@ export const SIDE_BASE_VISUAL_META = Object.freeze({
   pixelArt: true,
   imageSmoothing: false,
   gameplayHitRadiusUnchanged: 22,
-  release: '0.6.31',
+  release: '0.6.33',
 });
